@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Northline Supply · Forme demo store</title>
+  <meta name="description" content="A sample storefront showing the Forme size widget integrated into product pages." />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/demo.css" />
+  <script type="module" src="/js/demo.js"></script>
+</head>
+<body>
+  <div class="demo-bar">
+    <span><b>Demo store.</b> A fictional retailer using the Forme widget exactly as a customer would.</span>
+    <span class="demo-links"><a href="/">Forme home</a><a href="/console">See the data in the console →</a></span>
+  </div>
+  <header class="store-head">
+    <a href="#/" class="store-logo">NORTHLINE<small>SUPPLY CO.</small></a>
+    <nav><a href="#/">Shop all</a><a href="#/?c=tops">Tops</a><a href="#/?c=bottoms">Bottoms</a><a href="#/?c=dresses">Dresses</a></nav>
+    <button class="bag" id="bag-btn" aria-label="Open bag">Bag <span id="bag-count">0</span></button>
+  </header>
+  <main id="view"></main>
+  <aside class="drawer" id="drawer" aria-hidden="true" aria-label="Shopping bag">
+    <div class="drawer-head"><b>Your bag</b><button id="drawer-close" aria-label="Close bag">×</button></div>
+    <div class="drawer-body" id="drawer-body"></div>
+    <div class="drawer-foot" id="drawer-foot"></div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+  <footer class="store-foot">Northline Supply is a fictional brand. Products and prices are sample data.</footer>
+</body>
+</html>

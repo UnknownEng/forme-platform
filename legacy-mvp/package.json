@@ -1,0 +1,10 @@
+{
+  "name": "forme-fit-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A local MVP for personal apparel fit profiles and retailer size charts.",
+  "scripts": {
+    "start": "node server.js",
+    "test:backend": "node --test"
+  }
+}

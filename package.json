@@ -1,0 +1,14 @@
+{
+  "name": "forme-fit-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Forme: fit intelligence platform for fashion retailers. Size API, embeddable widget, merchant console and analytics.",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}

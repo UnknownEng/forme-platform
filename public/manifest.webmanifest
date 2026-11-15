@@ -1,0 +1,9 @@
+{
+  "name": "Forme — Fit intelligence",
+  "short_name": "Forme",
+  "start_url": "/console",
+  "display": "standalone",
+  "background_color": "#06080b",
+  "theme_color": "#06080b",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

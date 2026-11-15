@@ -1,0 +1,106 @@
+{
+  "products": [
+    {
+      "id": "p-north-tee",
+      "brand": "Studio North",
+      "name": "Everyday Cotton Tee",
+      "category": "T-shirts",
+      "price": 1490,
+      "description": "A clean, mid-weight cotton tee made for everyday rotation. Easy through the body with a tidy crew neck.",
+      "base": {
+        "chest": 104,
+        "waist": 96,
+        "shoulders": 46,
+        "length": 70
+      },
+      "fit": "Regular",
+      "color": 0,
+      "verified": false
+    },
+    {
+      "id": "p-thread-shirt",
+      "brand": "Common Thread",
+      "name": "The Workday Overshirt",
+      "category": "Shirts",
+      "price": 2790,
+      "description": "A soft structured overshirt that works open or buttoned. Cut with room for a light layer underneath.",
+      "base": {
+        "chest": 112,
+        "waist": 108,
+        "shoulders": 48,
+        "length": 74
+      },
+      "fit": "Relaxed",
+      "color": 1,
+      "verified": false
+    },
+    {
+      "id": "p-dayform-tee",
+      "brand": "Dayform",
+      "name": "Heavyweight Box Tee",
+      "category": "T-shirts",
+      "price": 1890,
+      "description": "A substantial cotton jersey with a wider sleeve and a relaxed, straight silhouette.",
+      "base": {
+        "chest": 110,
+        "waist": 104,
+        "shoulders": 48,
+        "length": 72
+      },
+      "fit": "Relaxed",
+      "color": 2,
+      "verified": false
+    },
+    {
+      "id": "p-north-knit",
+      "brand": "Northline",
+      "name": "Soft Rib Knit Polo",
+      "category": "Knitwear",
+      "price": 2490,
+      "description": "A light textured knit with a neat collar. A considered layer for in-between weather.",
+      "base": {
+        "chest": 102,
+        "waist": 94,
+        "shoulders": 45,
+        "length": 67
+      },
+      "fit": "Slim",
+      "color": 3,
+      "verified": false
+    },
+    {
+      "id": "p-common-tee",
+      "brand": "Common Thread",
+      "name": "Classic Crew Tee",
+      "category": "T-shirts",
+      "price": 1290,
+      "description": "An everyday crew in breathable cotton, cut straight with a familiar fit.",
+      "base": {
+        "chest": 106,
+        "waist": 99,
+        "shoulders": 46,
+        "length": 69
+      },
+      "fit": "Regular",
+      "color": 4,
+      "verified": false
+    },
+    {
+      "id": "p-field-shirt",
+      "brand": "Field Notes",
+      "name": "Linen Blend Shirt",
+      "category": "Shirts",
+      "price": 3290,
+      "description": "An airy linen blend shirt designed to be worn loose on warm days.",
+      "base": {
+        "chest": 114,
+        "waist": 108,
+        "shoulders": 49,
+        "length": 74
+      },
+      "fit": "Relaxed",
+      "color": 1,
+      "verified": false
+    }
+  ]
+}

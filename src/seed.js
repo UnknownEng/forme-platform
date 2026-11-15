@@ -1,0 +1,105 @@
+// Demo workspace: a fictional retailer with a real catalog and 60 days of
+// synthetic traffic, so the console has something to show on first run.
+// Everything here is generated sample data, labelled as such in the UI.
+const engine = require('./engine');
+const { hashPassword, sha256 } = require('./auth');
+
+const grade = (sizes, base, step) => sizes.map((size, i) => {
+  const row = { size };
+  for (const [k, v] of Object.entries(base)) row[k] = Math.round((v + (step[k] || 0) * i) * 10) / 10;
+  return row;
+});
+const TOPS = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+const WAIST = ['28', '30', '32', '34', '36', '38'];
+
+const DEMO_PRODUCTS = [
+  { sku: 'NL-TEE-01', name: 'Everyday Cotton Tee', category: 'T-shirts', fit: 'Regular', price: 1490, color: 0, description: 'Mid-weight cotton jersey with a tidy crew neck. Easy through the body.', chart: grade(TOPS, { chest: 92, waist: 86, shoulders: 42, length: 67 }, { chest: 6, waist: 6, shoulders: 2, length: 1 }) },
+  { sku: 'NL-BOX-02', name: 'Heavyweight Box Tee', category: 'T-shirts', fit: 'Relaxed', price: 1890, color: 2, description: 'Substantial 260gsm jersey with a dropped shoulder and a straight, boxy silhouette.', chart: grade(TOPS, { chest: 102, waist: 98, shoulders: 47, length: 67 }, { chest: 6, waist: 6, shoulders: 2, length: 1.2 }) },
+  { sku: 'NL-OXF-03', name: 'Washed Oxford Shirt', category: 'Shirts', fit: 'Regular', price: 2690, color: 3, description: 'Garment-washed oxford cloth with a soft button-down collar.', chart: grade(TOPS, { chest: 94, waist: 88, shoulders: 42, length: 71 }, { chest: 5, waist: 5, shoulders: 1.5, length: 1 }) },
+  { sku: 'NL-OVR-04', name: 'Workday Overshirt', category: 'Shirts', fit: 'Relaxed', price: 2790, color: 1, description: 'Soft structured twill overshirt cut with room for a layer underneath.', chart: grade(TOPS, { chest: 104, waist: 100, shoulders: 46, length: 72 }, { chest: 6, waist: 6, shoulders: 2, length: 1 }) },
+  { sku: 'NL-KNT-05', name: 'Soft Rib Knit Polo', category: 'Knitwear', fit: 'Slim', price: 2490, color: 4, description: 'A light textured knit with a neat collar, for in-between weather.', chart: grade(TOPS, { chest: 88, waist: 82, shoulders: 41, length: 64 }, { chest: 5, waist: 5, shoulders: 1.5, length: 1 }) },
+  { sku: 'NL-HOD-06', name: 'Loopback Hoodie', category: 'Hoodies', fit: 'Relaxed', price: 3290, color: 5, description: 'Brushed loopback cotton with a double-layer hood and ribbed hem.', chart: grade(TOPS, { chest: 104, waist: 96, shoulders: 46, length: 66 }, { chest: 6, waist: 6, shoulders: 2, length: 1.5 }) },
+  { sku: 'NL-JKT-07', name: 'Canvas Chore Jacket', category: 'Jackets', fit: 'Regular', price: 4990, color: 6, description: 'Waxed cotton canvas with three patch pockets and corozo buttons.', chart: grade(TOPS, { chest: 100, waist: 96, shoulders: 44, length: 70 }, { chest: 6, waist: 6, shoulders: 2, length: 1 }) },
+  { sku: 'NL-JNS-08', name: 'Straight Selvedge Jeans', category: 'Jeans', fit: 'Regular', price: 3990, color: 7, description: '13.5oz selvedge denim, straight from hip to hem.', chart: grade(WAIST, { waist: 74, hips: 94, inseam: 79 }, { waist: 5, hips: 5, inseam: 0.5 }) },
+  { sku: 'NL-CHN-09', name: 'Tapered Chino', category: 'Trousers', fit: 'Slim', price: 2990, color: 0, description: 'Stretch cotton twill with a gentle taper below the knee.', chart: grade(WAIST, { waist: 73, hips: 91, inseam: 78 }, { waist: 5, hips: 4.5, inseam: 0.5 }) },
+  { sku: 'NL-DRS-10', name: 'Linen Midi Dress', category: 'Dresses', fit: 'Regular', price: 4490, color: 1, description: 'Breathable European linen with a tie waist and a fluid midi length.', chart: grade(['XS', 'S', 'M', 'L', 'XL'], { chest: 84, waist: 68, hips: 92, length: 115 }, { chest: 5, waist: 5, hips: 5, length: 1 }) },
+];
+
+// Small deterministic PRNG so every fresh install shows the same demo story.
+function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+function seedDemo(db, auth, demoAccount) {
+  if (db.get("SELECT value FROM meta WHERE key = 'demo_seeded'")) return null;
+  const rand = rng(20261115);
+  // Deterministic ids: every server instance (e.g. each Vercel function) rebuilds
+  // exactly the same demo workspace, so demo logins and keys work everywhere.
+  const id = prefix => `${prefix}_${Math.floor(rand() * 2 ** 52).toString(36)}${Math.floor(rand() * 2 ** 30).toString(36)}`;
+  const DEMO_PK = { id: 'key_demo_public', key: `pk_live_demo${sha256('forme-demo-public-key').slice(0, 28)}` };
+  const pick = arr => arr[Math.floor(rand() * arr.length)];
+  const gauss = () => (rand() + rand() + rand() + rand() - 2) * 1.2;
+  const mid = 'mer_demo_northline';
+  const now = Date.now();
+  const DAY = 86400000;
+
+  db.tx(() => {
+    db.run('INSERT INTO merchants (id, name, email, password_hash, plan, return_cost, widget, created_at) VALUES (?,?,?,?,?,?,?,?)',
+      mid, demoAccount.name, demoAccount.email, hashPassword(demoAccount.password), 'enterprise', 450, JSON.stringify({ accent: '#d4f36b', label: 'Find my size', position: 'inline' }), now - 70 * DAY);
+    auth.createKey(mid, 'public', 'Storefront widget', DEMO_PK);
+    for (const p of DEMO_PRODUCTS) {
+      const t = now - 65 * DAY;
+      db.run(`INSERT INTO products (id, merchant_id, sku, brand, name, category, fit, price, description, image_url, color, chart, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        `prd_demo_${p.sku}`, mid, p.sku, 'Northline', p.name, p.category, p.fit, p.price, p.description, '', p.color, JSON.stringify(p.chart), t, t);
+    }
+
+    const insRec = 'INSERT INTO recommendations (id, merchant_id, sku, profile_id, size, confidence, engine, created_at) VALUES (?,?,?,?,?,?,?,?)';
+    const insEv = 'INSERT INTO events (merchant_id, type, sku, rec_id, size, value, created_at) VALUES (?,?,?,?,?,?,?)';
+    const insFb = 'INSERT INTO feedback (id, merchant_id, sku, rec_id, size, outcome, followed, created_at) VALUES (?,?,?,?,?,?,?,?)';
+    const shoppers = Array.from({ length: 900 }, () => {
+      const female = rand() < 0.42;
+      const height = Math.round(female ? 161 + gauss() * 6 : 174 + gauss() * 7);
+      const weight = Math.round((female ? 58 : 72) + gauss() * 9 + (height - (female ? 161 : 174)) * 0.6);
+      return { pid: id('prf'), body: { height, weight, fit: pick(['Slim', 'Regular', 'Regular', 'Relaxed']), build: pick(['Slim', 'Average', 'Average', 'Broad']) }, female };
+    });
+    // A couple of products have quirks so the insights page has a story.
+    const quirk = { 'NL-OXF-03': 'small', 'NL-BOX-02': 'large' };
+
+    for (let d = 59; d >= 0; d--) {
+      const dayStart = new Date(now - d * DAY); dayStart.setHours(0, 0, 0, 0);
+      const weekday = dayStart.getDay();
+      const growth = 1 + (59 - d) * 0.012;
+      const opens = Math.round((70 + rand() * 40) * growth * (weekday === 0 || weekday === 6 ? 1.35 : 1));
+      for (let i = 0; i < opens; i++) {
+        const t = dayStart.getTime() + Math.floor(rand() * DAY);
+        if (t > now) continue;
+        const s = pick(shoppers);
+        const pool = DEMO_PRODUCTS.filter(p => p.category !== 'Dresses' || s.female);
+        const p = pick(pool);
+        db.run(insEv, mid, 'widget_open', p.sku, null, null, null, t);
+        if (rand() > 0.8) continue;
+        const r = engine.recommend(p, s.body, {});
+        const recId = id('rec');
+        db.run(insRec, recId, mid, p.sku, s.pid, r.size, r.confidence, r.engine_version, t + 4000);
+        db.run(insEv, mid, 'recommendation', p.sku, recId, r.size, null, t + 4000);
+        if (rand() > 0.36 - (r.confidence - 75) / 400) continue;
+        const followed = rand() < 0.86;
+        const idx = p.chart.findIndex(c => c.size === r.size);
+        const size = followed ? r.size : p.chart[Math.min(p.chart.length - 1, Math.max(0, idx + (rand() < 0.5 ? -1 : 1)))].size;
+        db.run(insEv, mid, 'add_to_cart', p.sku, recId, size, null, t + 30000);
+        if (rand() > 0.63) continue;
+        db.run(insEv, mid, 'purchase', p.sku, recId, size, p.price, t + 300000);
+        if (rand() > 0.72 || t + 6 * DAY > now) continue;
+        const x = rand();
+        let outcome;
+        if (followed) outcome = x < 0.885 ? 'kept' : x < 0.925 ? 'too_small' : x < 0.965 ? 'too_large' : 'returned_other';
+        else outcome = x < 0.69 ? 'kept' : x < 0.82 ? 'too_small' : x < 0.93 ? 'too_large' : 'returned_other';
+        if (quirk[p.sku] === 'small' && outcome === 'kept' && rand() < 0.16) outcome = 'too_small';
+        if (quirk[p.sku] === 'large' && outcome === 'kept' && rand() < 0.14) outcome = 'too_large';
+        db.run(insFb, id('fb'), mid, p.sku, recId, size, outcome, followed ? 1 : 0, t + 6 * DAY);
+      }
+    }
+    db.run("INSERT INTO meta (key, value) VALUES ('demo_seeded', ?)", mid);
+  });
+  return mid;
+}
+
+module.exports = { seedDemo, DEMO_PRODUCTS };
