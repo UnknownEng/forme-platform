@@ -1,0 +1,12 @@
+{
+  "name": "forme-videos",
+  "private": true,
+  "description": "Scripts that render the Forme walkthrough and pitch videos.",
+  "scripts": {
+    "walkthrough": "node walkthrough.js",
+    "pitch": "node pitch.js"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.49.1"
+  }
+}
