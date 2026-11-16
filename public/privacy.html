@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Privacy · Forme</title>
+  <meta name="description" content="What Forme stores about shoppers and merchants, and how to delete it." />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/base.css" />
+  <style>
+    main { width: min(760px, calc(100% - 32px)); margin: 40px auto 80px; }
+    .glass { padding: clamp(24px, 5vw, 44px); }
+    h1 { font-size: clamp(38px, 6vw, 60px); letter-spacing: -.04em; margin: 18px 0 8px; line-height: 1; }
+    h2 { font-size: 22px; margin: 32px 0 8px; }
+    p, li { color: var(--text-2); }
+    li { margin: 6px 0; }
+    code { background: var(--ink); color: var(--lime); padding: 2px 6px; border-radius: 6px; font-size: 13px; }
+    .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 26px; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="top"><a href="/" class="logo"><span class="logo-mark"><span>f</span></span>forme</a><a class="btn ghost small" href="/">Back to site</a></div>
+    <article class="glass">
+      <span class="eyebrow"><span class="dot"></span>Privacy, in plain words</span>
+      <h1>What we keep. What we don't.</h1>
+      <p>Last updated 16 November 2026. This is a summary for shoppers and merchants using Forme while it is in pilot. It will be replaced by a full policy reviewed under Pakistan's data protection law before general launch.</p>
+
+      <h2>Shoppers</h2>
+      <ul>
+        <li><b>What we store:</b> your height, weight, optional body measurements (chest, waist, hips, inseam), whether you buy women's or men's sizes, and how you like clothes to fit.</li>
+        <li><b>What we never ask for:</b> your name, phone number, address, email, CNIC or photos.</li>
+        <li><b>Where it lives:</b> a random profile code is saved in your browser, and the measurements are saved on Forme's servers so the store can show your size.</li>
+        <li><b>What it is used for:</b> only to recommend sizes and to improve size accuracy (for example, learning that a product runs small). We do not sell it or use it for advertising.</li>
+        <li><b>Delete it any time:</b> tap <b>Forget me</b> in the size panel. This removes your profile from our servers and your browser.</li>
+      </ul>
+
+      <h2>Merchants</h2>
+      <ul>
+        <li>We store your account details (company name, work email, a hashed password), your products and size charts, and anonymous shopper events (widget opened, size recommended, added to cart, purchase value, keep/return outcome).</li>
+        <li>Secret API keys and passwords are stored only as one-way hashes.</li>
+        <li>You can ask us to delete your account and all its data.</li>
+      </ul>
+
+      <h2>For developers</h2>
+      <p>A shopper profile can be erased with <code>DELETE /v1/profiles/me</code>. See the <a href="/docs" style="text-decoration:underline">API docs</a>.</p>
+
+      <h2>Contact</h2>
+      <p>Questions or deletion requests: reach the Forme team through the contact details on the pilot agreement you received.</p>
+    </article>
+  </main>
+</body>
+</html>

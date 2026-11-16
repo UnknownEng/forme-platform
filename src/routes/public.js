@@ -53,7 +53,7 @@ function register(router, { db, services, config, limits, selfOrigin }) {
 
   router.get('/v1/widget-config', any, ctx => ({
     merchant: ctx.merchant.name,
-    widget: { accent: '#d4f36b', label: 'Find my size', position: 'inline', ...JSON.parse(ctx.merchant.widget) },
+    widget: { accent: '#c6ff3d', label: 'Find my size', position: 'inline', ...JSON.parse(ctx.merchant.widget) },
   }));
 
   router.post('/v1/recommend', any, async ctx => {

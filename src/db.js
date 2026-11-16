@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS merchants (
   allowed_origins TEXT NOT NULL DEFAULT '[]',
   widget TEXT NOT NULL DEFAULT '{}',
   return_cost REAL NOT NULL DEFAULT 450,
-  currency TEXT NOT NULL DEFAULT 'INR',
+  currency TEXT NOT NULL DEFAULT 'PKR',
   created_at INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS sessions (
@@ -93,6 +93,14 @@ CREATE TABLE IF NOT EXISTS feedback (
 );
 CREATE INDEX IF NOT EXISTS feedback_by_product ON feedback (merchant_id, sku);
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS admin_audit (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  action TEXT NOT NULL,
+  target TEXT,
+  detail TEXT,
+  ip TEXT,
+  created_at INTEGER NOT NULL
+);
 `;
 
 function open(dataDir) {
@@ -100,6 +108,10 @@ function open(dataDir) {
   const db = new DatabaseSync(path.join(dataDir, 'forme.db'));
   db.exec('PRAGMA journal_mode = WAL;');
   db.exec(SCHEMA);
+  // Lightweight migrations for databases created by earlier versions.
+  const cols = db.prepare('PRAGMA table_info(merchants)').all().map(c => c.name);
+  if (!cols.includes('suspended_at')) db.exec('ALTER TABLE merchants ADD COLUMN suspended_at INTEGER');
+  db.exec("UPDATE merchants SET currency = 'PKR' WHERE currency = 'INR'");
 
   const cache = new Map();
   const stmt = sql => { let s = cache.get(sql); if (!s) { s = db.prepare(sql); cache.set(sql, s); } return s; };

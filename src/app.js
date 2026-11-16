@@ -7,11 +7,18 @@ const { seedDemo } = require('./seed');
 const { HttpError, createRouter, send, rateLimiter, serveStatic } = require('./http');
 const openapi = require('./openapi');
 
-const PAGES = { '/': '/index.html', '/console': '/console.html', '/demo': '/demo.html', '/docs': '/docs.html' };
+const PAGES = { '/': '/index.html', '/console': '/console.html', '/demo': '/demo.html', '/docs': '/docs.html', '/admin': '/admin.html', '/privacy': '/privacy.html' };
 
 function createApp(overrides = {}) {
   const cfg = { ...config, ...overrides };
   const db = open(cfg.DATA_DIR);
+  // Local runs without FORME_ADMIN_PASSWORD get a generated password, saved once in the data folder.
+  if (cfg.ADMIN_PASSWORD === null) {
+    const file = require('node:path').join(cfg.DATA_DIR, 'admin-password.txt');
+    try { cfg.ADMIN_PASSWORD = require('node:fs').readFileSync(file, 'utf8').trim(); }
+    catch { cfg.ADMIN_PASSWORD = require('node:crypto').randomBytes(12).toString('base64url'); require('node:fs').writeFileSync(file, cfg.ADMIN_PASSWORD, { mode: 0o600 }); }
+    cfg.ADMIN_PASSWORD_FILE = file;
+  }
   const auth = createAuth(db, { sessionTtlMs: cfg.SESSION_TTL_MS, secret: cfg.SESSION_SECRET });
   const services = createServices(db);
   if (cfg.SEED_DEMO) seedDemo(db, auth, cfg.DEMO_ACCOUNT);
@@ -26,6 +33,7 @@ function createApp(overrides = {}) {
   const deps = { db, auth, services, config: cfg, limits, selfOrigin };
   require('./routes/console').register(router, deps);
   require('./routes/public').register(router, deps);
+  require('./routes/admin').register(router, deps);
 
   const spec = openapi(cfg.ENGINE_VERSION);
   router.get('/openapi.json', () => spec);

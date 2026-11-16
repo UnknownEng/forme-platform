@@ -4,3 +4,4 @@ data/*.db-*
 .vercel
 video/out/
 video/frames/
+data/admin-password.txt

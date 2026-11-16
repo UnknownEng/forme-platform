@@ -9,6 +9,8 @@ server.listen(config.PORT, config.HOST, () => {
   console.log(`  Merchant console ${url}/console`);
   console.log(`  Demo store       ${url}/demo`);
   console.log(`  API docs         ${url}/docs`);
+  console.log(`  Admin panel      ${url}/admin`);
+  if (config.ADMIN_PASSWORD_FILE) console.log(`  Admin password   saved in ${config.ADMIN_PASSWORD_FILE}`);
 });
 
 const shutdown = () => server.close(() => process.exit(0));

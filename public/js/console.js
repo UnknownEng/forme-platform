@@ -1,5 +1,6 @@
 import { $, $$, esc, money, compact, pct, api, toast, countUp, copyText, ring, animateRings, reduceMotion } from './ui.js';
 import { artBox, SWATCHES } from './art.js';
+import { areaChart, spark } from './charts.js';
 
 const root = $('#root');
 const layer = $('#layer');
@@ -14,7 +15,7 @@ const VIEWS = [
 ];
 const DIMS_FOR = { tops: ['chest', 'waist', 'shoulders', 'length'], bottoms: ['waist', 'hips', 'inseam'], dresses: ['chest', 'waist', 'hips', 'length'] };
 const GROUP_OF = c => (['Jeans', 'Trousers', 'Shorts'].includes(c) ? 'bottoms' : c === 'Dresses' ? 'dresses' : 'tops');
-const EV = { recommendation: ['✦', 'Size recommended'], widget_open: ['◌', 'Widget opened'], add_to_cart: ['＋', 'Added to cart'], purchase: ['₹', 'Purchase'], size_selected: ['✓', 'Size selected'] };
+const EV = { recommendation: ['✦', 'Size recommended'], widget_open: ['◌', 'Widget opened'], add_to_cart: ['＋', 'Added to cart'], purchase: ['Rs ', 'Purchase'], size_selected: ['✓', 'Size selected'] };
 const ago = t => { const s = Math.max(1, Math.round((Date.now() - t) / 1000)); return s < 60 ? `${s}s ago` : s < 3600 ? `${Math.round(s / 60)}m ago` : s < 86400 ? `${Math.round(s / 3600)}h ago` : `${Math.round(s / 86400)}d ago`; };
 
 /* =================== Boot & routing =================== */
@@ -35,7 +36,7 @@ function authScreen(mode) {
     <section class="auth-art">
       <a href="/" class="logo"><span class="logo-mark"><span>f</span></span>forme</a>
       <div class="auth-float">${artBox('Shirts', 3)}${artBox('Jeans', 7)}${artBox('Dresses', 4)}<span class="chip-f">M · 94% match</span></div>
-      <div><h1>Your catalog's <span class="serif" style="color:var(--lime)">fit brain.</span></h1><p>Manage size charts, ship the widget, and prove return savings with live analytics.</p></div>
+      <div><h1>Your catalog's <span class="serif" style="color:var(--accent-ink)">fit brain.</span></h1><p>Manage size charts, ship the widget, and prove return savings with live analytics.</p></div>
       <div class="auth-stats"><div><b>REST + widget</b><span>Two ways to integrate</span></div><div><b>Self-learning</b><span>From keep / return feedback</span></div></div>
     </section>
     <section class="auth-form"><div class="auth-card glass">
@@ -112,50 +113,6 @@ function render() {
 }
 function stopPoll() { clearInterval(S.poll); S.poll = null; }
 
-/* =================== Charts =================== */
-function areaChart(el, series, keys) {
-  const W = 800, H = 280, P = { l: 40, r: 10, t: 12, b: 28 };
-  const max = Math.max(1, ...series.flatMap(d => keys.map(k => d[k.key]))) * 1.12;
-  const x = i => P.l + (i / Math.max(1, series.length - 1)) * (W - P.l - P.r);
-  const y = v => H - P.b - (v / max) * (H - P.t - P.b);
-  const smooth = pts => pts.reduce((d, [px, py], i, a) => {
-    if (!i) return `M${px},${py}`;
-    const [qx, qy] = a[i - 1], cx = (qx + px) / 2;
-    return `${d} C${cx},${qy} ${cx},${py} ${px},${py}`;
-  }, '');
-  const ticks = Array.from({ length: 5 }, (_, i) => (max / 4) * i);
-  const step = Math.ceil(series.length / 7);
-  let svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><defs>${keys.map(k => `<linearGradient id="ga-${k.key}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${k.color}" stop-opacity=".35"/><stop offset="1" stop-color="${k.color}" stop-opacity="0"/></linearGradient>`).join('')}</defs>`;
-  svg += ticks.map(t => `<line class="gridline" x1="${P.l}" x2="${W - P.r}" y1="${y(t)}" y2="${y(t)}"/><text class="axis" x="${P.l - 8}" y="${y(t) + 4}" text-anchor="end">${compact(t)}</text>`).join('');
-  svg += series.map((d, i) => (i % step === 0 ? `<text class="axis" x="${x(i)}" y="${H - 6}" text-anchor="middle">${d.date.slice(5).replace('-', '/')}</text>` : '')).join('');
-  for (const k of keys) {
-    const pts = series.map((d, i) => [x(i), y(d[k.key])]);
-    const line = smooth(pts);
-    svg += `<path class="area" d="${line} L${x(series.length - 1)},${H - P.b} L${x(0)},${H - P.b} Z" fill="url(#ga-${k.key})"/>`;
-    svg += `<path class="line" d="${line}" stroke="${k.color}" pathLength="1000" style="--len:1000"/>`;
-  }
-  svg += `<line class="hover-line" id="hl" x1="0" x2="0" y1="${P.t}" y2="${H - P.b}" opacity="0"/>${keys.map(k => `<circle id="hd-${k.key}" r="5" fill="${k.color}" stroke="#0b0f14" stroke-width="2" opacity="0"/>`).join('')}</svg><div class="tip" style="opacity:0"></div>`;
-  el.innerHTML = svg;
-  const s = $('svg', el), tip = $('.tip', el);
-  el.onpointermove = e => {
-    const r = s.getBoundingClientRect();
-    const rel = ((e.clientX - r.left) / r.width) * W;
-    const i = Math.max(0, Math.min(series.length - 1, Math.round(((rel - P.l) / (W - P.l - P.r)) * (series.length - 1))));
-    const d = series[i];
-    $('#hl', el).setAttribute('x1', x(i)); $('#hl', el).setAttribute('x2', x(i)); $('#hl', el).setAttribute('opacity', 1);
-    for (const k of keys) { const c = $(`#hd-${k.key}`, el); c.setAttribute('cx', x(i)); c.setAttribute('cy', y(d[k.key])); c.setAttribute('opacity', 1); }
-    tip.style.opacity = 1;
-    tip.style.left = `${(x(i) / W) * r.width}px`; tip.style.top = `${(y(Math.max(...keys.map(k => d[k.key]))) / H) * r.height}px`;
-    tip.innerHTML = `<b>${new Date(d.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</b>${keys.map(k => `<div><i style="background:${k.color}"></i>${k.label}<span style="margin-left:auto;font-family:var(--mono)">${d[k.key]}</span></div>`).join('')}`;
-  };
-  el.onpointerleave = () => { tip.style.opacity = 0; $('#hl', el).setAttribute('opacity', 0); keys.forEach(k => $(`#hd-${k.key}`, el).setAttribute('opacity', 0)); };
-}
-function spark(values, color) {
-  if (!values.length) return '';
-  const max = Math.max(1, ...values), W = 120, H = 40;
-  const pts = values.map((v, i) => `${(i / Math.max(1, values.length - 1)) * W},${H - (v / max) * (H - 4)}`).join(' ');
-  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5"/><polygon points="0,${H} ${pts} ${W},${H}" fill="${color}" opacity=".12"/></svg>`;
-}
 const chg = c => (c == null ? '<span class="chg flat">new</span>' : `<span class="chg ${c > 0.5 ? 'up' : c < -0.5 ? 'down' : 'flat'}">${c > 0 ? '▲' : c < 0 ? '▼' : '•'} ${Math.abs(c).toFixed(1)}%</span>`);
 
 /* =================== Overview =================== */
@@ -169,12 +126,12 @@ async function overview() {
   const seriesOf = key => a.series.map(d => d[key]);
   const isDemo = S.merchant.email === 'demo@forme.dev';
   const kpis = [
-    ['Widget opens', k.widget_opens.value, chg(k.widget_opens.change), 'compact', seriesOf('opens'), '#74c7ff'],
-    ['Recommendations', k.recommendations.value, chg(k.recommendations.change), 'compact', seriesOf('recs'), '#d4f36b'],
-    ['Add-to-cart rate', k.add_to_cart_rate.value * 100, chg(k.add_to_cart_rate.change), 'pct', seriesOf('carts'), '#a48bff'],
-    ['Influenced revenue', k.influenced_revenue.value, chg(k.influenced_revenue.change), 'money', [], '#7ef0c1'],
-    ['Avg. confidence', k.avg_confidence.value, '<span class="chg flat">engine score</span>', 'pct', [], '#d4f36b'],
-    ['Unique shoppers', k.shoppers.value, '<span class="chg flat">with a profile</span>', 'compact', [], '#ff8a6b'],
+    ['Widget opens', k.widget_opens.value, chg(k.widget_opens.change), 'compact', seriesOf('opens'), '#3d5afe'],
+    ['Recommendations', k.recommendations.value, chg(k.recommendations.change), 'compact', seriesOf('recs'), '#ff5ca8'],
+    ['Add-to-cart rate', k.add_to_cart_rate.value * 100, chg(k.add_to_cart_rate.change), 'pct', seriesOf('carts'), '#12b76a'],
+    ['Influenced revenue', k.influenced_revenue.value, chg(k.influenced_revenue.change), 'money', [], '#12b76a'],
+    ['Avg. confidence', k.avg_confidence.value, '<span class="chg flat">engine score</span>', 'pct', [], '#ff5ca8'],
+    ['Unique shoppers', k.shoppers.value, '<span class="chg flat">with a profile</span>', 'compact', [], '#ff7a2f'],
   ];
   const maxRate = Math.max(r.followed_rate || 0, r.ignored_rate || 0, 0.01);
   view.innerHTML = `
@@ -182,7 +139,7 @@ async function overview() {
     <div class="grid kpis">${kpis.map(([l, v, c, f, sp, col], i) => `<div class="kpi glass" style="--i:${i}"><span>${l}</span><b data-v="${v}" data-f="${f}">0</b>${c}${spark(sp, col)}</div>`).join('')}</div>
     <div class="grid row-2" style="margin-top:16px">
       <section class="card glass"><div class="card-head"><div><h2>Shopper funnel</h2><p>Daily widget opens, size recommendations and add-to-carts after a recommendation</p></div>
-        <div class="legend"><span><i style="background:#74c7ff"></i>Opens</span><span><i style="background:#d4f36b"></i>Recommendations</span><span><i style="background:#a48bff"></i>Add to cart</span></div></div>
+        <div class="legend"><span><i style="background:#3d5afe"></i>Opens</span><span><i style="background:#ff5ca8"></i>Recommendations</span><span><i style="background:#12b76a"></i>Add to cart</span></div></div>
         <div class="chart" id="funnel"></div></section>
       <section class="card glass impact" style="--d:.1s"><div class="card-head"><div><h2>Return impact</h2><p>Size returns when shoppers followed Forme vs. picked another size</p></div></div>
         <div><div class="impact-big" id="savings">0</div><div class="helper">Estimated saved in ${S.days} days · ${r.returns_avoided} size returns avoided × ${money(r.return_cost, cur)} per return</div></div>
@@ -201,7 +158,7 @@ async function overview() {
     </div>`;
   $$('.kpi b').forEach(b => { const f = b.dataset.f; countUp(b, Number(b.dataset.v), { format: f === 'money' ? v => money(v, cur) : f === 'pct' ? v => `${v.toFixed(1)}%` : v => compact(v) }); });
   countUp($('#savings'), r.estimated_savings, { format: v => money(v, cur), duration: 1800 });
-  areaChart($('#funnel'), a.series, [{ key: 'opens', color: '#74c7ff', label: 'Opens' }, { key: 'recs', color: '#d4f36b', label: 'Recommendations' }, { key: 'carts', color: '#a48bff', label: 'Add to cart' }]);
+  areaChart($('#funnel'), a.series, [{ key: 'opens', color: '#3d5afe', label: 'Opens' }, { key: 'recs', color: '#ff5ca8', label: 'Recommendations' }, { key: 'carts', color: '#12b76a', label: 'Add to cart' }]);
   const mixMax = Math.max(1, ...a.size_mix.map(s => s.n));
   $('#mix').innerHTML = a.size_mix.length ? [...a.size_mix].sort((x, y) => sizeOrder(x.size) - sizeOrder(y.size)).map((s, i) => `<div style="--i:${i}"><i data-h="${(s.n / mixMax) * 100}" title="${s.n}"></i><span>${esc(s.size)}</span></div>`).join('') : '<p class="empty">No data yet</p>';
   requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -449,10 +406,10 @@ async function integration() {
   Forme.track(<span class="s">'purchase'</span>, { sku, size, value: price });
 <span class="k">&lt;/script&gt;</span>`;
   const accent = m.widget.accent;
-  const ACCENTS = ['#d4f36b', '#7ef0c1', '#74c7ff', '#a48bff', '#ff8a6b', '#f5d76e', '#ffffff'];
+  const ACCENTS = ['#ff5ca8', '#12b76a', '#3d5afe', '#12b76a', '#ff7a2f', '#f5d76e', '#ffffff'];
   view.innerHTML = `<div class="grid row-2">
     <section class="card glass"><div class="card-head"><div><h2>Install the widget</h2><p>Paste this into your storefront theme. It adapts to any page and never blocks rendering.</p></div><button class="btn ghost small" id="copy-snippet">Copy</button></div><pre class="snippet">${snippet}</pre>
-      <p class="helper" style="margin-top:12px">Full reference in the <a href="/docs" style="color:var(--lime)">API docs</a>. Try it on the <a href="/demo" style="color:var(--lime)">demo store</a>.</p></section>
+      <p class="helper" style="margin-top:12px">Full reference in the <a href="/docs" style="color:var(--accent-ink)">API docs</a>. Try it on the <a href="/demo" style="color:var(--accent-ink)">demo store</a>.</p></section>
     <section class="card glass" style="--d:.08s"><div class="card-head"><div><h2>Widget style</h2><p>Saved instantly to every storefront using your key.</p></div></div>
       <div class="form-grid"><div class="field"><span class="label">Accent colour</span><div class="swatches" id="acc">${ACCENTS.map(c => `<button type="button" style="--c:${c}" data-c="${c}" class="${c === accent ? 'on' : ''}" aria-label="Accent ${c}"></button>`).join('')}</div></div>
       <div class="field"><label for="w-label">Button label</label><input class="input" id="w-label" maxlength="32" value="${esc(m.widget.label)}"></div>
@@ -510,7 +467,7 @@ function settings() {
     <div class="field"><label for="s-cost">Average cost of one return (${esc(m.currency)})</label><input class="input" id="s-cost" name="return_cost" type="number" min="0" value="${m.return_cost}"><span class="helper">Reverse pickup, inspection and restocking. Used to estimate savings.</span></div>
     <div><button class="btn" type="submit">Save settings</button></div></form></section>
     <section class="card glass" style="--d:.08s"><div class="card-head"><div><h2>Account</h2></div></div>
-      <div class="form-grid"><div><span class="label">Email</span><div>${esc(m.email)}</div></div><div><span class="label">Plan</span><div><span class="pill lime">${esc(m.plan)}</span></div></div><div><span class="label">Member since</span><div>${new Date(m.created_at).toLocaleDateString('en-IN', { dateStyle: 'long' })}</div></div>
+      <div class="form-grid"><div><span class="label">Email</span><div>${esc(m.email)}</div></div><div><span class="label">Plan</span><div><span class="pill lime">${esc(m.plan)}</span></div></div><div><span class="label">Member since</span><div>${new Date(m.created_at).toLocaleDateString('en-PK', { dateStyle: 'long' })}</div></div>
       <div><span class="label">Data</span><p class="helper" style="margin:4px 0 0">Shopper profiles contain body measurements and a fit preference only. Shoppers can erase theirs from the widget ("Forget me") or via <code>DELETE /v1/profiles/me</code>.</p></div></div></section></div>`;
   $('#set-form').onsubmit = async e => {
     e.preventDefault();

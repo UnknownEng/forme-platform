@@ -9,13 +9,20 @@ const { ENGINE_VERSION } = require('./config');
 const DIMS = ['chest', 'waist', 'hips', 'shoulders', 'length', 'inseam'];
 
 const GROUPS = {
-  tops: { categories: ['T-shirts', 'Shirts', 'Knitwear', 'Jackets', 'Hoodies'], weights: { chest: 0.45, waist: 0.18, shoulders: 0.22, length: 0.15 }, required: ['chest'] },
+  tops: { categories: ['T-shirts', 'Shirts', 'Knitwear', 'Jackets', 'Hoodies', 'Kurtas', 'Shalwar Kameez'], weights: { chest: 0.45, waist: 0.18, shoulders: 0.22, length: 0.15 }, required: ['chest'] },
   bottoms: { categories: ['Jeans', 'Trousers', 'Shorts'], weights: { waist: 0.5, hips: 0.3, inseam: 0.2 }, required: ['waist'] },
   dresses: { categories: ['Dresses'], weights: { chest: 0.35, waist: 0.35, hips: 0.3, length: 0.0 }, required: ['chest', 'waist'] },
 };
 const CATEGORIES = Object.values(GROUPS).flatMap(g => g.categories);
 const FITS = ['Slim', 'Regular', 'Relaxed'];
 const BUILDS = ['Slim', 'Average', 'Broad'];
+const SEXES = ['female', 'male'];
+
+// Body proportions as a share of height. Without a sizing preference we average both.
+const RATIOS = {
+  male: { chest: 0.555, waist: 0.47, hips: 0.56, shoulders: 0.262, inseam: 0.45 },
+  female: { chest: 0.545, waist: 0.43, hips: 0.6, shoulders: 0.235, inseam: 0.455 },
+};
 
 function groupFor(category) {
   return Object.entries(GROUPS).find(([, g]) => g.categories.includes(category))?.[0] || 'tops';
@@ -34,12 +41,13 @@ function resolveBody(input = {}) {
   const bmi = Number.isFinite(weight) && weight > 30 && weight < 250 ? weight / ((height / 100) ** 2) : null;
   const buildShift = { Slim: -1, Average: 0, Broad: 1 }[input.build] ?? 0;
   const b = bmi == null ? buildShift * 2.2 : clamp(bmi - 22.5, -6, 14) + buildShift * 0.8;
+  const r = RATIOS[input.sex] || Object.fromEntries(Object.keys(RATIOS.male).map(k => [k, (RATIOS.male[k] + RATIOS.female[k]) / 2]));
   const estimates = {
-    chest: 0.555 * height + b * 2.3,
-    waist: 0.47 * height + b * 3.1,
-    hips: 0.56 * height + b * 2.1,
-    shoulders: 0.262 * height + b * 0.35,
-    inseam: 0.45 * height,
+    chest: r.chest * height + b * 2.3,
+    waist: r.waist * height + b * 3.1,
+    hips: r.hips * height + b * 2.1,
+    shoulders: r.shoulders * height + b * 0.35,
+    inseam: r.inseam * height,
   };
   const body = { height };
   const estimated = [];
@@ -51,15 +59,18 @@ function resolveBody(input = {}) {
   return { body, estimated, fit: FITS.includes(input.fit) ? input.fit : 'Regular' };
 }
 
+// Ideal garment length as a share of height. A kurta or kameez is cut far longer than a tee.
+const LENGTH_RATIO = { Kurtas: 0.66, 'Shalwar Kameez': 0.58, Dresses: 0.7 };
+
 // Garment measurement we would like to see for this body and preference.
-function targets(body, fitPref, garmentFit, group, shiftCm) {
+function targets(body, fitPref, garmentFit, group, shiftCm, category) {
   const pref = { Slim: 0, Regular: 1, Relaxed: 2 }[fitPref];
   const cut = { Slim: -2, Regular: 0, Relaxed: 3 }[garmentFit] ?? 0;
   const chestEase = [6, 10, 16][pref] + cut + shiftCm;
   const t = {
     chest: body.chest + chestEase,
     shoulders: body.shoulders + [0, 1, 2.5][pref],
-    length: 0.41 * body.height,
+    length: (LENGTH_RATIO[category] || 0.41) * body.height,
     inseam: body.inseam,
   };
   if (group === 'bottoms') {
@@ -72,11 +83,13 @@ function targets(body, fitPref, garmentFit, group, shiftCm) {
   return t;
 }
 
-function scoreRow(row, target, weights, group) {
+function scoreRow(row, target, weights, group, estimated = []) {
   let total = 0, wsum = 0;
   const deltas = {};
-  for (const [dim, w] of Object.entries(weights)) {
-    if (!w || !Number.isFinite(row[dim])) continue;
+  for (const [dim, w0] of Object.entries(weights)) {
+    if (!w0 || !Number.isFinite(row[dim])) continue;
+    // Guessed measurements (from height/weight only) count for less than measured ones.
+    const w = estimated.includes(dim) ? w0 * 0.45 : w0;
     const d = row[dim] - target[dim];
     deltas[dim] = d;
     // Too tight hurts more than too loose; length deviations matter less per cm.
@@ -112,10 +125,10 @@ function recommend(product, profileInput, feedback) {
   const { weights } = GROUPS[group];
   const { body, estimated, fit } = resolveBody(profileInput);
   const cal = calibration(feedback);
-  const target = targets(body, fit, product.fit, group, cal.shift_cm);
+  const target = targets(body, fit, product.fit, group, cal.shift_cm, product.category);
   const chart = product.chart;
 
-  const scored = chart.map(row => ({ row, ...scoreRow(row, target, weights, group) })).filter(s => Number.isFinite(s.penalty));
+  const scored = chart.map(row => ({ row, ...scoreRow(row, target, weights, group, estimated) })).filter(s => Number.isFinite(s.penalty));
   if (!scored.length) throw new Error('size chart has no measurements this engine can use');
   const ranked = [...scored].sort((a, b) => a.penalty - b.penalty);
   const best = ranked[0];
@@ -129,6 +142,10 @@ function recommend(product, profileInput, feedback) {
   // Edge of the chart and still far off: the range probably does not suit.
   const outOfRange = (idx === 0 || idx === chart.length - 1) && best.penalty > 5;
   if (outOfRange) confidence -= 10;
+  // With nothing measured, the size is an informed guess: never call it a strong match.
+  const measured = usedDims.filter(d => !estimated.includes(d) && d !== 'length');
+  if (!measured.length) confidence = Math.min(confidence, 80);
+  if (!SEXES.includes(profileInput.sex)) confidence -= 3;
   confidence = Math.round(clamp(confidence, 30, 98));
 
   let alternative = null;
@@ -147,7 +164,7 @@ function recommend(product, profileInput, feedback) {
     confidence,
     label,
     alternative,
-    fit_notes: usedDims.map(d => note(d, best.deltas[d])),
+    fit_notes: usedDims.map(d => ({ ...note(d, best.deltas[d]), estimated: estimated.includes(d) })),
     out_of_range: outOfRange,
     estimated: estimatedUsed,
     calibration: cal,
@@ -156,4 +173,4 @@ function recommend(product, profileInput, feedback) {
   };
 }
 
-module.exports = { recommend, resolveBody, calibration, groupFor, GROUPS, CATEGORIES, FITS, BUILDS, DIMS };
+module.exports = { recommend, resolveBody, calibration, groupFor, GROUPS, CATEGORIES, FITS, BUILDS, SEXES, DIMS };

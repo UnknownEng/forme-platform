@@ -1,5 +1,5 @@
 // Garment illustrations, drawn as SVG so they stay crisp and themeable.
-export const SWATCHES = ['#d4f36b', '#7ef0c1', '#a48bff', '#74c7ff', '#ff8a6b', '#f5d76e', '#e9e2d4', '#6f8cff'];
+export const SWATCHES = ['#c6ff3d', '#3ddc97', '#9b6cff', '#4fa3ff', '#ff5ca8', '#ffd43b', '#ff7a2f', '#3d5afe'];
 
 const SHAPES = {
   tee: {
@@ -22,13 +22,17 @@ const SHAPES = {
     body: 'M56 10h88l8 206h-40l-12-140-12 140H48Z',
     detail: '<path d="M56 26h88" stroke="rgba(0,0,0,.25)" stroke-width="3"/><path d="M100 26v46" stroke="rgba(0,0,0,.25)" stroke-width="2"/><path d="M62 30c4 18 18 22 28 22M138 30c-4 18-18 22-28 22" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="1.8"/><path d="M48 206h40M112 206h40" stroke="rgba(0,0,0,.18)" stroke-width="5"/>',
   },
+  kurta: {
+    body: 'M66 14 86 6c4 10 24 10 28 0l20 8 38 36-18 26-20-14v134l8 26H56l8-26V62L44 76 26 50Z',
+    detail: '<path d="M90 8v52M110 8v52" stroke="rgba(0,0,0,.18)" stroke-width="2"/><path d="M100 10v70" stroke="rgba(0,0,0,.3)" stroke-width="2.2"/><g fill="rgba(0,0,0,.3)"><circle cx="100" cy="30" r="2.3"/><circle cx="100" cy="48" r="2.3"/><circle cx="100" cy="66" r="2.3"/></g><path d="M64 180 56 216M136 180l8 36" stroke="rgba(0,0,0,.28)" stroke-width="2"/><path d="M66 120h68M70 140h60" stroke="rgba(255,255,255,.35)" stroke-width="3" stroke-dasharray="4 6"/>',
+  },
   dress: {
     body: 'M78 10h10c2 12 22 12 24 0h10l6 26-8 46 52 134H28l52-134-8-46Z',
     detail: '<path d="M72 82h56" stroke="rgba(0,0,0,.28)" stroke-width="4"/><path d="M96 82c-6 10-10 22-8 30M104 82c6 10 10 22 8 30" fill="none" stroke="rgba(0,0,0,.25)" stroke-width="2"/><path d="M88 10c2 14 22 14 24 0" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="2"/><path d="M60 216 92 90M140 216 108 90" stroke="rgba(255,255,255,.18)" stroke-width="2"/>',
   },
 };
 
-const KIND = { 'T-shirts': 'tee', Shirts: 'shirt', Knitwear: 'shirt', Hoodies: 'hoodie', Jackets: 'jacket', Jeans: 'jeans', Trousers: 'jeans', Shorts: 'jeans', Dresses: 'dress' };
+const KIND = { 'T-shirts': 'tee', Shirts: 'shirt', Knitwear: 'shirt', Hoodies: 'hoodie', Jackets: 'jacket', Jeans: 'jeans', Trousers: 'jeans', Shorts: 'jeans', Dresses: 'dress', Kurtas: 'kurta', 'Shalwar Kameez': 'kurta' };
 let uid = 0;
 
 export function garment(category, color = 0) {

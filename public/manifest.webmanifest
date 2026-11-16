@@ -3,7 +3,7 @@
   "short_name": "Forme",
   "start_url": "/console",
   "display": "standalone",
-  "background_color": "#06080b",
-  "theme_color": "#06080b",
+  "background_color": "#fff7e8",
+  "theme_color": "#fff7e8",
   "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
 }

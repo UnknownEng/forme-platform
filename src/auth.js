@@ -40,7 +40,7 @@ function createAuth(db, { sessionTtlMs, secret }) {
     if (mac.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(mac), Buffer.from(expected))) return null;
     const [merchantId, exp] = payload.split('.');
     if (!(Number(exp) > Date.now())) return null;
-    return db.get('SELECT * FROM merchants WHERE id = ?', merchantId) || null;
+    return db.get('SELECT * FROM merchants WHERE id = ? AND suspended_at IS NULL', merchantId) || null;
   }
   // Signing out clears the cookie in the browser (see the logout route).
   function destroySession() {}
@@ -58,7 +58,7 @@ function createAuth(db, { sessionTtlMs, secret }) {
   function resolveKey(raw) {
     if (!raw || !/^(pk|sk)_live_[A-Za-z0-9_-]{20,}$/.test(raw)) return null;
     const row = db.get(`SELECT k.id AS key_id, k.kind, k.last_used_at, m.* FROM api_keys k JOIN merchants m ON m.id = k.merchant_id
-      WHERE k.key_hash = ? AND k.revoked_at IS NULL`, sha256(raw));
+      WHERE k.key_hash = ? AND k.revoked_at IS NULL AND m.suspended_at IS NULL`, sha256(raw));
     if (!row) return null;
     // Avoid a write on every call: refresh last_used at most once a minute.
     if (!row.last_used_at || Date.now() - row.last_used_at > 60_000) db.run('UPDATE api_keys SET last_used_at = ? WHERE id = ?', Date.now(), row.key_id);

@@ -6,9 +6,9 @@ import { artBox } from './art.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const money = v => '₹' + Number(v).toLocaleString('en-IN');
-const GROUP = { tops: ['T-shirts', 'Shirts', 'Knitwear', 'Hoodies', 'Jackets'], bottoms: ['Jeans', 'Trousers', 'Shorts'], dresses: ['Dresses'] };
-const SIZES = { 'T-shirts': 'XS S M L XL XXL', Shirts: 'XS S M L XL XXL', Knitwear: 'XS S M L XL XXL', Hoodies: 'XS S M L XL XXL', Jackets: 'XS S M L XL XXL', Jeans: '28 30 32 34 36 38', Trousers: '28 30 32 34 36 38', Dresses: 'XS S M L XL' };
+const money = v => 'Rs ' + Number(v).toLocaleString('en-PK');
+const GROUP = { tops: ['T-shirts', 'Shirts', 'Knitwear', 'Hoodies', 'Jackets'], eastern: ['Kurtas', 'Shalwar Kameez'], bottoms: ['Jeans', 'Trousers', 'Shorts'], dresses: ['Dresses'] };
+const SIZES = { 'T-shirts': 'XS S M L XL XXL', Shirts: 'XS S M L XL XXL', Knitwear: 'XS S M L XL XXL', Hoodies: 'XS S M L XL XXL', Jackets: 'XS S M L XL XXL', Kurtas: 'XS S M L XL', 'Shalwar Kameez': 'XS S M L XL XXL', Jeans: '28 30 32 34 36 38', Trousers: '28 30 32 34 36 38', Dresses: 'XS S M L XL' };
 
 let products = [];
 let bag = [];
@@ -40,8 +40,8 @@ function route() {
 
 function list(group) {
   const items = products.filter(p => !group || GROUP[group]?.includes(p.category));
-  $('#view').innerHTML = `<section class="hero"><h1>Autumn<br/><em>essentials</em></h1><p>Considered everyday pieces. Not sure of your size? Every product page has a Forme fit check, and once you've done it your size shows here too.</p></section>
-  <div class="chips"><a href="#/" class="${!group ? 'on' : ''}">All</a><a href="#/?c=tops" class="${group === 'tops' ? 'on' : ''}">Tops</a><a href="#/?c=bottoms" class="${group === 'bottoms' ? 'on' : ''}">Bottoms</a><a href="#/?c=dresses" class="${group === 'dresses' ? 'on' : ''}">Dresses</a></div>
+  $('#view').innerHTML = `<section class="hero"><h1>Winter<br/><em>edit '26</em></h1><p>Everyday western wear and easy eastern staples, made in Lahore. Not sure of your size? Every product page has a Forme fit check, and once you've done it your size shows here too.</p></section>
+  <div class="chips"><a href="#/" class="${!group ? 'on' : ''}">All</a><a href="#/?c=tops" class="${group === 'tops' ? 'on' : ''}">Tops</a><a href="#/?c=eastern" class="${group === 'eastern' ? 'on' : ''}">Eastern</a><a href="#/?c=bottoms" class="${group === 'bottoms' ? 'on' : ''}">Bottoms</a><a href="#/?c=dresses" class="${group === 'dresses' ? 'on' : ''}">Dresses</a></div>
   <div class="grid">${items.map((p, i) => `<a class="card" style="--i:${i}" href="#/p/${encodeURIComponent(p.sku)}"><div style="position:relative">${artBox(p.category, p.color)}<span class="yoursize" data-sku="${esc(p.sku)}" hidden></span></div><h3>${esc(p.name)}</h3><div class="meta"><span>${esc(p.category)}</span><span>${money(p.price)}</span></div></a>`).join('')}</div>`;
   listingSizes(items);
 }
@@ -71,7 +71,7 @@ function pdp(sku) {
     <div class="sizes" role="radiogroup" aria-label="Size">${sizes.map(s => `<button role="radio" aria-checked="false" data-s="${s}">${s}</button>`).join('')}</div>
     <div class="hint" id="hint"></div>
     <button class="add" id="add" disabled>Select a size</button>
-    <div class="perks"><span>✓ Free exchanges within 30 days</span><span>✓ Size checked by Forme fit engine</span><span>✓ Ships in 2–4 days</span></div>
+    <div class="perks"><span>✓ Free size exchange within 7 days</span><span>✓ Size checked by Forme fit engine</span><span>✓ Cash on delivery · Ships in 2–4 days nationwide</span></div>
   </div></div>`;
   const paint = () => {
     document.querySelectorAll('.sizes button').forEach(b => { b.classList.toggle('on', b.dataset.s === selected); b.classList.toggle('rec', b.dataset.s === recommended); b.setAttribute('aria-checked', String(b.dataset.s === selected)); });

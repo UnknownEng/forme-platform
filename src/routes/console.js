@@ -9,7 +9,7 @@ const COOKIE = 'forme_session';
 function publicMerchant(m) {
   return {
     id: m.id, name: m.name, email: m.email, plan: m.plan, currency: m.currency, return_cost: m.return_cost,
-    allowed_origins: JSON.parse(m.allowed_origins), widget: { accent: '#d4f36b', position: 'inline', label: 'Find my size', ...JSON.parse(m.widget) },
+    allowed_origins: JSON.parse(m.allowed_origins), widget: { accent: '#c6ff3d', position: 'inline', label: 'Find my size', ...JSON.parse(m.widget) },
     created_at: m.created_at,
   };
 }
@@ -39,7 +39,7 @@ function register(router, { db, auth, services, config, limits }) {
     if (db.get('SELECT 1 FROM merchants WHERE email = ?', b.email)) fail(409, 'email_taken', 'An account with this email already exists.');
     const mid = id('mer');
     db.tx(() => {
-      db.run('INSERT INTO merchants (id, name, email, password_hash, created_at) VALUES (?,?,?,?,?)', mid, b.name.trim(), b.email.trim(), hashPassword(b.password), Date.now());
+      db.run('INSERT INTO merchants (id, name, email, password_hash, currency, created_at) VALUES (?,?,?,?,?,?)', mid, b.name.trim(), b.email.trim(), hashPassword(b.password), 'PKR', Date.now());
       auth.createKey(mid, 'public', 'Storefront widget');
     });
     ctx.res.extraHeaders = { 'Set-Cookie': cookie(auth.createSession(mid), config.SESSION_TTL_MS / 1000) };
@@ -51,6 +51,7 @@ function register(router, { db, auth, services, config, limits }) {
     const m = typeof b.email === 'string' ? db.get('SELECT * FROM merchants WHERE email = ?', b.email.trim()) : null;
     const ok = verifyPassword(String(b.password || ''), m ? m.password_hash : DUMMY_HASH) && !!m;
     if (!ok) fail(401, 'invalid_credentials', 'Email or password is incorrect.');
+    if (m.suspended_at) fail(403, 'account_suspended', 'This account is suspended. Contact Forme support.');
     ctx.res.extraHeaders = { 'Set-Cookie': cookie(auth.createSession(m.id), config.SESSION_TTL_MS / 1000) };
     return { merchant: publicMerchant(m) };
   });
@@ -72,7 +73,7 @@ function register(router, { db, auth, services, config, limits }) {
     if (b.return_cost !== undefined) { if (!validate.num(b.return_cost, 0, 100000)) fail(400, 'invalid_return_cost', 'Return cost must be between 0 and 100,000.'); next.return_cost = Number(b.return_cost); }
     if (b.widget !== undefined) {
       const w = b.widget || {};
-      if (w.accent !== undefined && !/^#[0-9a-fA-F]{6}$/.test(w.accent)) fail(400, 'invalid_widget', 'Accent must be a hex colour like #d4f36b.');
+      if (w.accent !== undefined && !/^#[0-9a-fA-F]{6}$/.test(w.accent)) fail(400, 'invalid_widget', 'Accent must be a hex colour like #c6ff3d.');
       if (w.label !== undefined && !validate.str(w.label, 32)) fail(400, 'invalid_widget', 'Button label must be 1–32 characters.');
       if (w.position !== undefined && !['inline', 'floating'].includes(w.position)) fail(400, 'invalid_widget', 'Position must be inline or floating.');
       next.widget = { ...next.widget, ...Object.fromEntries(Object.entries({ accent: w.accent, label: w.label?.trim(), position: w.position }).filter(([, v]) => v !== undefined)) };

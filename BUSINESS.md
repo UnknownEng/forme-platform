@@ -1,46 +1,45 @@
-# Forme business analysis
+# Forme business plan (Pakistan)
 
 ## The idea in one line
-A B2B "fit intelligence" layer: shoppers create one fit profile, and any fashion platform that plugs in Forme can tell them their size for every product, reducing size-related returns.
+A "fit intelligence" layer for Pakistani fashion e-commerce: shoppers answer three questions once, and any brand that plugs in Forme can tell them their size for every product, so fewer parcels come back or get refused at the door.
+
+The full simulated 100-judge evaluation, with sources, is in [docs/EVALUATION.md](docs/EVALUATION.md). Summary: **3 invest, 33 pilot, 64 pass; average 4.1/10.** Operators (brand e-commerce heads, D2C founders) liked it enough to pilot; investors want proof first.
 
 ## Why it can work
-- **The pain is real and measurable.** Apparel has the highest return rates in e-commerce, and size/fit is the most common reason given. Every return costs reverse logistics, handling, and often the sale itself. In India, cash-on-delivery and free returns make this worse.
-- **The buyer has a budget line for it.** Returns cost shows up directly in a platform's P&L, so savings are easy to calculate (the ROI calculator on the landing page does this with the client's own numbers).
-- **Integration is light.** One script tag or one API call. Platforms can pilot on a single category without engineering projects.
-- **Data compounds.** Every keep/return outcome improves product calibration. The longer a platform uses Forme, the better it gets, which raises switching costs.
+- **Every brand sizes differently.** A "Medium" at one Lahore pret brand is not a Medium at the next, and shoppers know it.
+- **Cash on delivery magnifies doubt.** Most Pakistani online orders are COD. When a shopper isn't sure about size, a common outcome is a refused parcel and a wasted two-way courier trip.
+- **The pain is in the brand's P&L.** Courier both ways, handling and re-stocking are easy to price, so savings are easy to show.
+- **Light integration.** One script tag on Shopify/WooCommerce/custom stores, or a REST API.
 
-## The hard truths
-1. **It's a crowded category.** Established players include True Fit, Fit Analytics (owned by Snap), Bold Metrics, Virtusize, Kiwi Sizing, Sizebay and 3DLook. Several large platforms (Amazon, Myntra and others) also have in-house size recommendation. "Better UI" is not enough to win.
-2. **Big platforms rarely buy from unproven startups.** They will ask for case studies, security review, uptime SLAs, data-processing agreements and references. Selling straight to the biggest platforms first is the slowest path.
-3. **The cross-store profile is the moat, and the hardest part.** Browsers isolate storage per site, so a shopper's profile does not follow them between stores automatically. A Forme login (phone OTP) or platform partnerships are needed for true "one profile everywhere".
-4. **Accuracy depends on real size charts.** Many brands' charts are body-measurement charts, not garment charts, and are often wrong. You need a process to collect or verify garment measurements.
+## The hard truths (from the judges)
+1. **Measure the problem first.** Nobody publishes how many Pakistani COD refusals and returns are actually caused by size. Some refusals are buyer's remorse before anyone tries anything on. Size advice only fixes the share caused by size doubt. Get this number from pilot brands before selling hard.
+2. **Expect modest savings.** Published results from big European retailers show roughly 4–10% fewer size-related returns, not 25–35%. The website now uses 5/10/15% scenarios.
+3. **Price below the savings.** At 15,000 orders/month, realistic savings are a few lakh rupees a year. Pricing has to sit comfortably under that: Rs 9,999/month for Growth, free pilots, and outcome-based deals for big platforms.
+4. **No moat yet.** The cross-store profile is the long-term moat, but browsers isolate storage per site. It needs a Forme login (e.g. phone OTP) before it is real, so the website now calls it "coming soon".
+5. **Unstitched fabric has no size.** A large share of fashion sales on marketplaces like Daraz is unstitched lawn, which Forme cannot help with. Focus on pret (ready-to-wear), menswear, denim and western wear.
+6. **Size charts are messy.** Many brands publish body charts, not garment measurements. Offer a paid "size chart audit" service; it's also a way in.
 
-## Where to win (recommended positioning)
-- **Start with mid-size Indian D2C brands and regional marketplaces**, not Myntra or Amazon. They feel the returns pain, lack in-house data science teams, and decide fast.
-- **Specialise first:** e.g. ethnic wear (kurtas, sherwanis, blouses) or men's shirts and denim, where sizing is inconsistent and existing tools are weak. Ethnic wear sizing in particular is underserved by global competitors.
-- **Sell on outcomes:** offer a free 30–60 day pilot on one category, measure return rate with vs without Forme (the console already tracks "followed vs ignored" return rates), then charge.
-- **Use the data later:** aggregated, anonymised fit data ("which sizes run small, which body types are under-served") is valuable to brands' design and merchandising teams. That's a second product.
+## Where to win
+- **Start with mid-size pret, menswear and denim brands** that run their own Shopify/WooCommerce stores, not Daraz. They own the checkout and the returns data, and decide fast.
+- **Women's pret first.** Kurtas and 2-piece/3-piece pret dominate online fashion. The engine now has Kurtas and Shalwar Kameez categories with their own length rules, and a women's/men's sizing choice.
+- **Diaspora storefronts** (UK, US, Gulf) shipping from Pakistan: international returns are very expensive, so sizing accuracy is worth more.
+- **Sell outcomes:** a free 4–8 week pilot on one category, measuring size returns and refusals with vs without the widget. The console already tracks "followed vs ignored" return rates.
 
-## Pricing models to test
-| Model | Good for | Note |
+## Pricing to test
+| Plan | Price | For |
 |---|---|---|
-| Free tier (≤5k recs/month) | Small brands, word of mouth | Builds the shopper profile network |
-| Per recommendation (e.g. ₹0.30–0.50) | Growth brands | Predictable, easy to understand |
-| Share of measured savings | Large platforms | Aligns with their goal; requires trusted measurement |
-| Annual enterprise licence | Marketplaces | Add SLA, SSO, data residency |
+| Starter | Free up to 5,000 recommendations/month | Pilots, small brands |
+| Growth | Rs 9,999/month incl. 50,000 recommendations, then Rs 0.25 each | Growing pret/menswear brands |
+| Enterprise | Share of measured savings, or annual licence | Large brands, marketplaces |
 
-The prices on the landing page are placeholders to validate with real customers.
+These are starting points. Validate with the first three pilots.
 
-## Pitch for a big platform (when you get there)
-1. Their numbers in the ROI calculator: orders, AOV, return rate, size share, cost per return.
-2. Live demo: the demo store + the console's live activity feed.
-3. Pilot proposal: one category, 4–8 weeks, A/B test (widget shown vs hidden), success metric = size-return rate.
-4. Security pack: key model, data stored (body measurements only), erasure endpoint, hosting/data-residency plan.
-5. Integration effort: widget (hours) or API (days), catalog sync via bulk endpoint.
+## Regulation
+Pakistan's personal data protection bill has been in draft for several years, and PECA applies to electronic data. Forme stores body measurements only (no name, phone, CNIC or photos), has a public privacy page, a consent line in the widget, and a one-tap "Forget me". Get a local legal review before signing large brands.
 
 ## Next 90 days
-1. Get 3–5 real brand size charts and test the engine against real shoppers' known sizes.
-2. Deploy to a real domain with HTTPS; add password reset and team accounts.
-3. Sign 2–3 pilot brands for free in exchange for return data and a case study.
-4. Build the Forme shopper login (phone OTP) so profiles really travel between stores.
-5. Turn pilot results into a one-page case study before approaching large platforms.
+1. Get size charts and anonymised return/refusal data from 3 pilot brands. Measure what share is truly size-related.
+2. Calibrate the engine on real outcomes; publish an accuracy number you can defend.
+3. Move from demo storage to Postgres; add password reset and team accounts.
+4. Ship the phone-OTP Forme login so profiles follow shoppers between brands.
+5. Turn the best pilot into a one-page case study (with the brand's permission) before approaching large brands or marketplaces.

@@ -143,7 +143,7 @@ test('demo seed creates a working demo workspace', async () => {
   const b = `http://127.0.0.1:${seeded.server.address().port}`;
   try {
     const cfg = await (await fetch(b + '/demo-config.json')).json();
-    assert.equal(cfg.products.length, 10);
+    assert.equal(cfg.products.length, 12);
     const r = await fetch(b + '/v1/recommend', { method: 'POST', headers: bearer(cfg.publicKey), body: JSON.stringify({ sku: 'NL-JNS-08', profile: { height: 175, waist: 84 } }) });
     assert.equal(r.status, 200);
     const n = seeded.db.get('SELECT COUNT(*) AS n FROM events').n;

@@ -1,6 +1,6 @@
 // Input validation. Every function returns { value } on success or { error } with a
 // human-readable message, so routes can answer with a precise 400.
-const { CATEGORIES, FITS, BUILDS, DIMS, GROUPS, groupFor } = require('./engine');
+const { CATEGORIES, FITS, BUILDS, SEXES, DIMS, GROUPS, groupFor } = require('./engine');
 
 const str = (v, max) => typeof v === 'string' && v.trim().length > 0 && v.trim().length <= max;
 const num = (v, lo, hi) => { const n = Number(v); return Number.isFinite(n) && n >= lo && n <= hi; };
@@ -69,6 +69,8 @@ function profile(input) {
   }
   if (input.fit != null && !FITS.includes(input.fit)) return { error: `profile.fit must be one of: ${FITS.join(', ')}` };
   if (input.build != null && !BUILDS.includes(input.build)) return { error: `profile.build must be one of: ${BUILDS.join(', ')}` };
+  if (input.sex != null && input.sex !== '' && !SEXES.includes(input.sex)) return { error: `profile.sex must be one of: ${SEXES.join(', ')} (or omitted)` };
+  if (SEXES.includes(input.sex)) out.sex = input.sex;
   out.fit = input.fit || 'Regular';
   if (input.build) out.build = input.build;
   return { value: out };

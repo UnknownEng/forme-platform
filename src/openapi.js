@@ -1,6 +1,6 @@
 // OpenAPI 3.1 description of the public API, served at /openapi.json and
 // rendered by /docs.
-const { CATEGORIES, FITS, BUILDS } = require('./engine');
+const { CATEGORIES, FITS, BUILDS, SEXES } = require('./engine');
 
 module.exports = function spec(version) {
   const ref = n => ({ $ref: `#/components/schemas/${n}` });
@@ -18,7 +18,7 @@ module.exports = function spec(version) {
         Profile: { type: 'object', required: ['height'], properties: {
           height: { type: 'number', description: 'cm, 120–225' }, weight: { type: 'number', description: 'kg, optional' },
           chest: { type: 'number' }, waist: { type: 'number' }, hips: { type: 'number' }, shoulders: { type: 'number' }, inseam: { type: 'number' },
-          fit: { enum: FITS }, build: { enum: BUILDS } } },
+          fit: { enum: FITS }, build: { enum: BUILDS }, sex: { enum: SEXES, description: 'Which size range the shopper buys from. Optional; improves estimates.' } } },
         ChartRow: { type: 'object', required: ['size'], properties: { size: { type: 'string' }, chest: { type: 'number' }, waist: { type: 'number' }, hips: { type: 'number' }, shoulders: { type: 'number' }, length: { type: 'number' }, inseam: { type: 'number' } } },
         Product: { type: 'object', required: ['name', 'brand', 'category', 'chart'], properties: {
           sku: { type: 'string' }, name: { type: 'string' }, brand: { type: 'string' }, category: { enum: CATEGORIES }, fit: { enum: FITS },

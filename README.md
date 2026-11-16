@@ -87,7 +87,7 @@ This is a complete, working product you can demo and pilot, but before running i
 4. **Billing**: metered usage (recommendations per month) via a payment provider.
 5. **Shopper identity across stores**: the profile token works across every merchant, but browsers isolate storage per site, so true cross-store reuse needs a Forme sign-in (e.g. phone OTP) or partner-level account linking.
 6. **Fit model**: validate the engine against real brand charts and real return data; the calibration loop is built in.
-7. **Legal**: privacy policy, DPA, consent text in the widget, and compliance review for your markets (e.g. India's DPDP Act, GDPR).
+7. **Legal**: privacy policy, DPA, consent text in the widget, and compliance review for your markets (e.g. Pakistan's data protection rules and PECA, GDPR for EU shoppers).
 8. **Ops**: backups, monitoring/alerting, error tracking, uptime SLA.
 
 See [BUSINESS.md](BUSINESS.md) for the business analysis and go-to-market notes.

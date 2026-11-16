@@ -13,23 +13,37 @@ const TOPS = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const WAIST = ['28', '30', '32', '34', '36', '38'];
 
 const DEMO_PRODUCTS = [
-  { sku: 'NL-TEE-01', name: 'Everyday Cotton Tee', category: 'T-shirts', fit: 'Regular', price: 1490, color: 0, description: 'Mid-weight cotton jersey with a tidy crew neck. Easy through the body.', chart: grade(TOPS, { chest: 92, waist: 86, shoulders: 42, length: 67 }, { chest: 6, waist: 6, shoulders: 2, length: 1 }) },
-  { sku: 'NL-BOX-02', name: 'Heavyweight Box Tee', category: 'T-shirts', fit: 'Relaxed', price: 1890, color: 2, description: 'Substantial 260gsm jersey with a dropped shoulder and a straight, boxy silhouette.', chart: grade(TOPS, { chest: 102, waist: 98, shoulders: 47, length: 67 }, { chest: 6, waist: 6, shoulders: 2, length: 1.2 }) },
-  { sku: 'NL-OXF-03', name: 'Washed Oxford Shirt', category: 'Shirts', fit: 'Regular', price: 2690, color: 3, description: 'Garment-washed oxford cloth with a soft button-down collar.', chart: grade(TOPS, { chest: 94, waist: 88, shoulders: 42, length: 71 }, { chest: 5, waist: 5, shoulders: 1.5, length: 1 }) },
-  { sku: 'NL-OVR-04', name: 'Workday Overshirt', category: 'Shirts', fit: 'Relaxed', price: 2790, color: 1, description: 'Soft structured twill overshirt cut with room for a layer underneath.', chart: grade(TOPS, { chest: 104, waist: 100, shoulders: 46, length: 72 }, { chest: 6, waist: 6, shoulders: 2, length: 1 }) },
-  { sku: 'NL-KNT-05', name: 'Soft Rib Knit Polo', category: 'Knitwear', fit: 'Slim', price: 2490, color: 4, description: 'A light textured knit with a neat collar, for in-between weather.', chart: grade(TOPS, { chest: 88, waist: 82, shoulders: 41, length: 64 }, { chest: 5, waist: 5, shoulders: 1.5, length: 1 }) },
-  { sku: 'NL-HOD-06', name: 'Loopback Hoodie', category: 'Hoodies', fit: 'Relaxed', price: 3290, color: 5, description: 'Brushed loopback cotton with a double-layer hood and ribbed hem.', chart: grade(TOPS, { chest: 104, waist: 96, shoulders: 46, length: 66 }, { chest: 6, waist: 6, shoulders: 2, length: 1.5 }) },
-  { sku: 'NL-JKT-07', name: 'Canvas Chore Jacket', category: 'Jackets', fit: 'Regular', price: 4990, color: 6, description: 'Waxed cotton canvas with three patch pockets and corozo buttons.', chart: grade(TOPS, { chest: 100, waist: 96, shoulders: 44, length: 70 }, { chest: 6, waist: 6, shoulders: 2, length: 1 }) },
-  { sku: 'NL-JNS-08', name: 'Straight Selvedge Jeans', category: 'Jeans', fit: 'Regular', price: 3990, color: 7, description: '13.5oz selvedge denim, straight from hip to hem.', chart: grade(WAIST, { waist: 74, hips: 94, inseam: 79 }, { waist: 5, hips: 5, inseam: 0.5 }) },
-  { sku: 'NL-CHN-09', name: 'Tapered Chino', category: 'Trousers', fit: 'Slim', price: 2990, color: 0, description: 'Stretch cotton twill with a gentle taper below the knee.', chart: grade(WAIST, { waist: 73, hips: 91, inseam: 78 }, { waist: 5, hips: 4.5, inseam: 0.5 }) },
-  { sku: 'NL-DRS-10', name: 'Linen Midi Dress', category: 'Dresses', fit: 'Regular', price: 4490, color: 1, description: 'Breathable European linen with a tie waist and a fluid midi length.', chart: grade(['XS', 'S', 'M', 'L', 'XL'], { chest: 84, waist: 68, hips: 92, length: 115 }, { chest: 5, waist: 5, hips: 5, length: 1 }) },
+  { sku: 'NL-TEE-01', name: 'Everyday Cotton Tee', category: 'T-shirts', fit: 'Regular', price: 1990, color: 0, description: 'Mid-weight cotton jersey with a tidy crew neck. Easy through the body.', chart: grade(TOPS, { chest: 92, waist: 86, shoulders: 42, length: 67 }, { chest: 6, waist: 6, shoulders: 2, length: 1 }) },
+  { sku: 'NL-BOX-02', name: 'Heavyweight Box Tee', category: 'T-shirts', fit: 'Relaxed', price: 2490, color: 2, description: 'Substantial 260gsm jersey with a dropped shoulder and a straight, boxy silhouette.', chart: grade(TOPS, { chest: 102, waist: 98, shoulders: 47, length: 67 }, { chest: 6, waist: 6, shoulders: 2, length: 1.2 }) },
+  { sku: 'NL-OXF-03', name: 'Washed Oxford Shirt', category: 'Shirts', fit: 'Regular', price: 3990, color: 3, description: 'Garment-washed oxford cloth with a soft button-down collar.', chart: grade(TOPS, { chest: 94, waist: 88, shoulders: 42, length: 71 }, { chest: 5, waist: 5, shoulders: 1.5, length: 1 }) },
+  { sku: 'NL-OVR-04', name: 'Workday Overshirt', category: 'Shirts', fit: 'Relaxed', price: 4490, color: 1, description: 'Soft structured twill overshirt cut with room for a layer underneath.', chart: grade(TOPS, { chest: 104, waist: 100, shoulders: 46, length: 72 }, { chest: 6, waist: 6, shoulders: 2, length: 1 }) },
+  { sku: 'NL-KNT-05', name: 'Soft Rib Knit Polo', category: 'Knitwear', fit: 'Slim', price: 3490, color: 4, description: 'A light textured knit with a neat collar, for in-between weather.', chart: grade(TOPS, { chest: 88, waist: 82, shoulders: 41, length: 64 }, { chest: 5, waist: 5, shoulders: 1.5, length: 1 }) },
+  { sku: 'NL-HOD-06', name: 'Loopback Hoodie', category: 'Hoodies', fit: 'Relaxed', price: 4990, color: 5, description: 'Brushed loopback cotton with a double-layer hood and ribbed hem.', chart: grade(TOPS, { chest: 104, waist: 96, shoulders: 46, length: 66 }, { chest: 6, waist: 6, shoulders: 2, length: 1.5 }) },
+  { sku: 'NL-JKT-07', name: 'Canvas Chore Jacket', category: 'Jackets', fit: 'Regular', price: 7990, color: 6, description: 'Waxed cotton canvas with three patch pockets and corozo buttons.', chart: grade(TOPS, { chest: 100, waist: 96, shoulders: 44, length: 70 }, { chest: 6, waist: 6, shoulders: 2, length: 1 }) },
+  { sku: 'NL-JNS-08', name: 'Straight Selvedge Jeans', category: 'Jeans', fit: 'Regular', price: 4990, color: 7, description: '13.5oz selvedge denim, straight from hip to hem.', chart: grade(WAIST, { waist: 74, hips: 94, inseam: 79 }, { waist: 5, hips: 5, inseam: 0.5 }) },
+  { sku: 'NL-CHN-09', name: 'Tapered Chino', category: 'Trousers', fit: 'Slim', price: 3990, color: 0, description: 'Stretch cotton twill with a gentle taper below the knee.', chart: grade(WAIST, { waist: 73, hips: 91, inseam: 78 }, { waist: 5, hips: 4.5, inseam: 0.5 }) },
+  { sku: 'NL-KRT-11', name: 'Lawn Printed Kurta', category: 'Kurtas', fit: 'Regular', price: 3990, color: 4, description: 'Breathable printed lawn with a straight cut, side slits and a band collar. Easy summer staple.', chart: grade(['XS', 'S', 'M', 'L', 'XL'], { chest: 88, waist: 84, shoulders: 36, length: 108 }, { chest: 6, waist: 6, shoulders: 1.5, length: 1.5 }) },
+  { sku: 'NL-SKZ-12', name: 'Cotton Shalwar Kameez', category: 'Shalwar Kameez', fit: 'Regular', price: 5490, color: 6, description: 'Soft wash-and-wear cotton with a classic collar. Kameez sized by chest and length; shalwar has an adjustable waist.', chart: grade(TOPS, { chest: 98, waist: 94, shoulders: 43, length: 98 }, { chest: 6, waist: 6, shoulders: 1.5, length: 1.5 }) },
+  { sku: 'NL-DRS-10', name: 'Linen Midi Dress', category: 'Dresses', fit: 'Regular', price: 5990, color: 1, description: 'Breathable European linen with a tie waist and a fluid midi length.', chart: grade(['XS', 'S', 'M', 'L', 'XL'], { chest: 84, waist: 68, hips: 92, length: 115 }, { chest: 5, waist: 5, hips: 5, length: 1 }) },
 ];
 
 // Small deterministic PRNG so every fresh install shows the same demo story.
 function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
+// Bump when the demo catalog or story changes; older demo workspaces are rebuilt.
+const DEMO_VERSION = '4-pk';
+
 function seedDemo(db, auth, demoAccount) {
-  if (db.get("SELECT value FROM meta WHERE key = 'demo_seeded'")) return null;
+  const seeded = db.get("SELECT value FROM meta WHERE key = 'demo_seeded'");
+  if (seeded && db.get("SELECT value FROM meta WHERE key = 'demo_version'")?.value === DEMO_VERSION) return null;
+  if (seeded) {
+    // Only the demo workspace is removed; real merchant accounts are untouched.
+    db.tx(() => {
+      for (const t of ['recommendations', 'events', 'feedback', 'products', 'api_keys', 'sessions']) db.run(`DELETE FROM ${t} WHERE merchant_id = ?`, seeded.value);
+      db.run('DELETE FROM merchants WHERE id = ?', seeded.value);
+      db.run("DELETE FROM meta WHERE key IN ('demo_seeded', 'demo_version')");
+    });
+  }
   const rand = rng(20261115);
   // Deterministic ids: every server instance (e.g. each Vercel function) rebuilds
   // exactly the same demo workspace, so demo logins and keys work everywhere.
@@ -42,8 +56,8 @@ function seedDemo(db, auth, demoAccount) {
   const DAY = 86400000;
 
   db.tx(() => {
-    db.run('INSERT INTO merchants (id, name, email, password_hash, plan, return_cost, widget, created_at) VALUES (?,?,?,?,?,?,?,?)',
-      mid, demoAccount.name, demoAccount.email, hashPassword(demoAccount.password), 'enterprise', 450, JSON.stringify({ accent: '#d4f36b', label: 'Find my size', position: 'inline' }), now - 70 * DAY);
+    db.run('INSERT INTO merchants (id, name, email, password_hash, plan, return_cost, widget, currency, created_at) VALUES (?,?,?,?,?,?,?,?,?)',
+      mid, demoAccount.name, demoAccount.email, hashPassword(demoAccount.password), 'enterprise', 450, JSON.stringify({ accent: '#c6ff3d', label: 'Find my size', position: 'inline' }), 'PKR', now - 70 * DAY);
     auth.createKey(mid, 'public', 'Storefront widget', DEMO_PK);
     for (const p of DEMO_PRODUCTS) {
       const t = now - 65 * DAY;
@@ -72,7 +86,7 @@ function seedDemo(db, auth, demoAccount) {
         const t = dayStart.getTime() + Math.floor(rand() * DAY);
         if (t > now) continue;
         const s = pick(shoppers);
-        const pool = DEMO_PRODUCTS.filter(p => p.category !== 'Dresses' || s.female);
+        const pool = DEMO_PRODUCTS.filter(p => (['Dresses', 'Kurtas'].includes(p.category) ? s.female : p.category === 'Shalwar Kameez' ? !s.female : true));
         const p = pick(pool);
         db.run(insEv, mid, 'widget_open', p.sku, null, null, null, t);
         if (rand() > 0.8) continue;
@@ -98,6 +112,7 @@ function seedDemo(db, auth, demoAccount) {
       }
     }
     db.run("INSERT INTO meta (key, value) VALUES ('demo_seeded', ?)", mid);
+    db.run("INSERT OR REPLACE INTO meta (key, value) VALUES ('demo_version', ?)", DEMO_VERSION);
   });
   return mid;
 }

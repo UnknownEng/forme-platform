@@ -19,6 +19,9 @@ module.exports = {
   // Signs session cookies. Set FORME_SECRET in production so sessions survive restarts
   // and work across server instances.
   SESSION_SECRET: process.env.FORME_SECRET || crypto.randomBytes(32).toString('hex'),
+  // Platform owner admin panel at /admin. Disabled until FORME_ADMIN_PASSWORD is set
+  // (locally a one-time password is generated and printed at startup).
+  ADMIN_PASSWORD: process.env.FORME_ADMIN_PASSWORD || (ON_VERCEL ? '' : null),
   PORT: Number(process.env.PORT ?? 4173),
   HOST: process.env.HOST || '127.0.0.1',
   // Set FORME_SEED=0 to start with an empty database (no demo merchant).

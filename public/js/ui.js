@@ -4,11 +4,13 @@ export const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-export function money(v, currency = 'INR') {
-  try { return new Intl.NumberFormat('en-IN', { style: 'currency', currency, maximumFractionDigits: 0 }).format(Number(v) || 0); }
-  catch { return '₹' + Math.round(Number(v) || 0).toLocaleString('en-IN'); }
+export function money(v, currency = 'PKR') {
+  const n = Math.round(Number(v) || 0);
+  if (currency === 'PKR') return 'Rs ' + n.toLocaleString('en-PK');
+  try { return new Intl.NumberFormat('en-PK', { style: 'currency', currency, maximumFractionDigits: 0 }).format(n); }
+  catch { return `${currency} ${n.toLocaleString('en-PK')}`; }
 }
-export const compact = v => new Intl.NumberFormat('en-IN', { notation: 'compact', maximumFractionDigits: 1 }).format(Number(v) || 0);
+export const compact = v => new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(Number(v) || 0);
 export const pct = (v, d = 1) => `${(Number(v) * 100).toFixed(d)}%`;
 
 // Fetch wrapper for the console API: JSON in/out, CSRF header, typed errors.
@@ -43,7 +45,7 @@ export function reveal(root = document) {
 }
 
 // Animate a number into an element. format: fn(value) -> string
-export function countUp(el, to, { from = 0, duration = 1400, format = v => Math.round(v).toLocaleString('en-IN') } = {}) {
+export function countUp(el, to, { from = 0, duration = 1400, format = v => Math.round(v).toLocaleString('en-PK') } = {}) {
   if (reduceMotion()) { el.textContent = format(to); return; }
   const start = performance.now();
   const tick = now => {
@@ -97,9 +99,9 @@ export async function copyText(text) {
 }
 
 // Confidence ring as SVG; animate by toggling the --p variable.
-export function ring(value, size = 120, stroke = 10, color = 'var(--lime)') {
+export function ring(value, size = 120, stroke = 10, color = 'var(--pink)') {
   const r = (size - stroke) / 2, c = 2 * Math.PI * r;
-  return `<svg class="ring" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" aria-hidden="true"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="${stroke}"/>
+  return `<svg class="ring" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" aria-hidden="true"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="rgba(18,18,18,.1)" stroke-width="${stroke}"/>
   <circle class="ring-fg" cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c}" data-target="${c * (1 - value / 100)}" transform="rotate(-90 ${size / 2} ${size / 2})" style="transition:stroke-dashoffset 1.3s cubic-bezier(.22,1,.36,1)"/></svg>`;
 }
 export function animateRings(root = document) {

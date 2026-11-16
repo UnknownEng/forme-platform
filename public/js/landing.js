@@ -1,38 +1,41 @@
 import { $, $$, esc, money, compact, reveal, countOnView, countUp, tilt, magnetic, copyText, ring, animateRings, reduceMotion } from './ui.js';
 import { artBox } from './art.js';
 
-/* ---------- Ambient "measurement threads" canvas ---------- */
+/* ---------- Floating confetti: shapes drift and dodge the cursor ---------- */
 function threads() {
   const c = $('#threads');
   const ctx = c.getContext('2d');
-  let w, h, dpr, pts = [];
+  const COLORS = ['#c6ff3d', '#ff5ca8', '#3d5afe', '#ffd43b', '#ff7a2f', '#12b76a'];
+  let w, h, dpr, bits = [];
   const mouse = { x: -9999, y: -9999 };
   const resize = () => {
     dpr = Math.min(2, devicePixelRatio || 1);
     w = c.width = innerWidth * dpr; h = c.height = innerHeight * dpr;
-    const n = Math.round(Math.min(90, (innerWidth * innerHeight) / 18000));
-    pts = Array.from({ length: n }, () => ({ x: Math.random() * w, y: Math.random() * h, vx: (Math.random() - 0.5) * 0.25 * dpr, vy: (Math.random() - 0.5) * 0.25 * dpr }));
+    const n = Math.round(Math.min(34, (innerWidth * innerHeight) / 40000));
+    bits = Array.from({ length: n }, (_, i) => ({ x: Math.random() * w, y: Math.random() * h, vx: (Math.random() - .5) * .3 * dpr, vy: (-.15 - Math.random() * .35) * dpr,
+      r: (6 + Math.random() * 9) * dpr, rot: Math.random() * 6.28, vr: (Math.random() - .5) * .02, color: COLORS[i % COLORS.length], kind: i % 4 }));
   };
   resize();
   addEventListener('resize', resize);
   addEventListener('pointermove', e => { mouse.x = e.clientX * dpr; mouse.y = e.clientY * dpr; });
-  const link = 150 * (devicePixelRatio || 1);
+  const draw = b => {
+    ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.rot);
+    ctx.fillStyle = b.color; ctx.strokeStyle = '#121212'; ctx.lineWidth = 2 * dpr; ctx.beginPath();
+    if (b.kind === 0) ctx.arc(0, 0, b.r * .7, 0, Math.PI * 2);
+    else if (b.kind === 1) ctx.rect(-b.r * .7, -b.r * .7, b.r * 1.4, b.r * 1.4);
+    else if (b.kind === 2) { ctx.moveTo(0, -b.r); ctx.lineTo(b.r * .9, b.r * .7); ctx.lineTo(-b.r * .9, b.r * .7); ctx.closePath(); }
+    else { for (let k = 0; k < 10; k++) { const rr = k % 2 ? b.r * .45 : b.r; const a = (k / 10) * Math.PI * 2; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } ctx.closePath(); }
+    ctx.fill(); ctx.stroke(); ctx.restore();
+  };
   const frame = () => {
     ctx.clearRect(0, 0, w, h);
-    for (const p of pts) {
-      p.x += p.vx; p.y += p.vy;
-      if (p.x < 0 || p.x > w) p.vx *= -1;
-      if (p.y < 0 || p.y > h) p.vy *= -1;
-      const dx = mouse.x - p.x, dy = mouse.y - p.y, d = Math.hypot(dx, dy);
-      if (d < 180 * dpr) { p.x -= dx * 0.004; p.y -= dy * 0.004; }
-    }
-    for (let i = 0; i < pts.length; i++) {
-      for (let j = i + 1; j < pts.length; j++) {
-        const a = pts[i], b = pts[j], d = Math.hypot(a.x - b.x, a.y - b.y);
-        if (d < link) { ctx.strokeStyle = `rgba(212,243,107,${(1 - d / link) * 0.16})`; ctx.lineWidth = dpr; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
-      }
-      ctx.fillStyle = 'rgba(212,243,107,.5)';
-      ctx.beginPath(); ctx.arc(pts[i].x, pts[i].y, 1.3 * dpr, 0, Math.PI * 2); ctx.fill();
+    for (const b of bits) {
+      const dx = b.x - mouse.x, dy = b.y - mouse.y, d = Math.hypot(dx, dy);
+      if (d < 140 * dpr) { b.x += (dx / d) * 4 * dpr; b.y += (dy / d) * 4 * dpr; b.vr += .004; }
+      b.x += b.vx; b.y += b.vy; b.rot += b.vr; b.vr *= .995;
+      if (b.y < -40 * dpr) { b.y = h + 40 * dpr; b.x = Math.random() * w; }
+      if (b.x < -40 * dpr) b.x = w + 30 * dpr; else if (b.x > w + 40 * dpr) b.x = -30 * dpr;
+      ctx.globalAlpha = .55; draw(b);
     }
     requestAnimationFrame(frame);
   };
@@ -51,18 +54,18 @@ function nav() {
 
 /* ---------- Hero stage: flying garments + cycling widget ---------- */
 const HERO_SAMPLES = [
-  { name: 'Everyday Cotton Tee', cat: 'T-shirts', color: 0, size: 'M', conf: 94, notes: [['Chest', 'ideal'], ['Shoulders', 'ideal'], ['Length', 'ideal']] },
+  { name: 'Everyday Cotton Tee', cat: 'T-shirts', color: 0, size: 'M', conf: 86, notes: [['Chest', 'ideal'], ['Shoulders', 'ideal'], ['Length', 'ideal']] },
   { name: 'Straight Selvedge Jeans', cat: 'Jeans', color: 7, size: '32', conf: 91, notes: [['Waist', 'ideal'], ['Hips', 'ideal'], ['Inseam', 'long']] },
-  { name: 'Linen Midi Dress', cat: 'Dresses', color: 1, size: 'S', conf: 88, notes: [['Bust', 'ideal'], ['Waist', 'ideal'], ['Hips', 'roomy']] },
+  { name: 'Lawn Printed Kurta', cat: 'Kurtas', color: 1, size: 'S', conf: 89, notes: [['Chest', 'ideal'], ['Shoulders', 'ideal'], ['Length', 'long']] },
   { name: 'Loopback Hoodie', cat: 'Hoodies', color: 5, size: 'L', conf: 90, notes: [['Chest', 'roomy'], ['Shoulders', 'ideal'], ['Length', 'ideal']] },
-  { name: 'Canvas Chore Jacket', cat: 'Jackets', color: 6, size: 'M', conf: 86, notes: [['Chest', 'ideal'], ['Waist', 'ideal'], ['Length', 'short']] },
+  { name: 'Cotton Shalwar Kameez', cat: 'Shalwar Kameez', color: 6, size: 'L', conf: 87, notes: [['Chest', 'ideal'], ['Waist', 'roomy'], ['Length', 'ideal']] },
 ];
 
 function stage() {
   const s = $('#stage');
   $('.f1').innerHTML = artBox('Shirts', 3);
   $('.f2').innerHTML = artBox('Jeans', 7);
-  $('.f3').innerHTML = artBox('Dresses', 4);
+  $('.f3').innerHTML = artBox('Kurtas', 4);
   $('.f4').innerHTML = artBox('Hoodies', 2);
 
   let i = 0;
@@ -70,7 +73,7 @@ function stage() {
     const x = HERO_SAMPLES[i % HERO_SAMPLES.length];
     $('#phone-art').innerHTML = artBox(x.cat, x.color);
     $('#phone-name').textContent = x.name;
-    $('#phone-ring').innerHTML = ring(x.conf, 96, 9);
+    $('#phone-ring').innerHTML = ring(x.conf, 96, 10);
     countUp($('#phone-conf'), x.conf, { duration: 1100, format: v => `${Math.round(v)}%` });
     $('#phone-size').textContent = x.size; $('#phone-size-2').textContent = x.size;
     $('#phone-notes').innerHTML = x.notes.map(([a, f]) => `<div><span>${a}</span><em class="${f}">${f}</em></div>`).join('');
@@ -100,9 +103,9 @@ async function liveDemo() {
   let cfg;
   try { cfg = await (await fetch('/demo-config.json')).json(); } catch { cfg = null; }
   if (!cfg?.publicKey) { $('#demo-label').textContent = 'Demo workspace not installed'; return; }
-  const products = ['NL-TEE-01', 'NL-OXF-03', 'NL-HOD-06', 'NL-JNS-08', 'NL-DRS-10'].map(s => cfg.products.find(p => p.sku === s)).filter(Boolean);
+  const products = ['NL-TEE-01', 'NL-KRT-11', 'NL-SKZ-12', 'NL-JNS-08', 'NL-DRS-10'].map(s => cfg.products.find(p => p.sku === s)).filter(Boolean);
   let current = products[0];
-  const state = { fit: 'Regular', build: 'Average' };
+  const state = { fit: 'Regular', build: 'Average', sex: 'male' };
   $('#prod-pick').innerHTML = products.map((p, i) => `<button class="${i ? '' : 'on'}" data-sku="${esc(p.sku)}" aria-label="${esc(p.name)}" title="${esc(p.name)}">${artBox(p.category, p.color)}</button>`).join('');
 
   const fill = el => el.style.setProperty('--fill', `${((el.value - el.min) / (el.max - el.min)) * 100}%`);
@@ -111,13 +114,13 @@ async function liveDemo() {
     clearTimeout(timer);
     timer = setTimeout(async () => {
       const my = ++seq;
-      const body = { sku: current.sku, profile: { height: Number($('#height').value), weight: Number($('#weight').value), fit: state.fit, build: state.build } };
+      const body = { sku: current.sku, profile: { height: Number($('#height').value), weight: Number($('#weight').value), fit: state.fit, build: state.build, sex: state.sex } };
       try {
         const res = await fetch('/v1/recommend', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cfg.publicKey}` }, body: JSON.stringify(body) });
         const r = await res.json();
         if (my !== seq) return;
         if (!res.ok) throw new Error(r.error?.message);
-        $('#demo-ring').innerHTML = ring(r.confidence, 140, 12);
+        $('#demo-ring').innerHTML = ring(r.confidence, 140, 14);
         animateRings($('#demo'));
         $('#demo-size').textContent = r.size;
         $('#demo-conf').textContent = `${r.confidence}%`;
@@ -134,7 +137,7 @@ async function liveDemo() {
     const el = $('#' + id); fill(el);
     el.addEventListener('input', () => { $('#v-' + id).textContent = el.value; fill(el); run(); });
   }
-  for (const id of ['fit', 'build']) {
+  for (const id of ['fit', 'build', 'sex']) {
     $('#' + id).addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
       $$('#' + id + ' button').forEach(x => x.classList.toggle('on', x === b));
@@ -144,7 +147,10 @@ async function liveDemo() {
   $('#prod-pick').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     $$('#prod-pick button').forEach(x => x.classList.toggle('on', x === b));
-    current = products.find(p => p.sku === b.dataset.sku); setArt(); run();
+    current = products.find(p => p.sku === b.dataset.sku);
+    const want = ['Kurtas', 'Dresses'].includes(current.category) ? 'female' : current.category === 'Shalwar Kameez' ? 'male' : state.sex;
+    if (want !== state.sex) { state.sex = want; $('#sex button').forEach(x => x.classList.toggle('on', x.dataset.v === want)); }
+    setArt(); run();
   });
   run();
 }
@@ -152,7 +158,7 @@ async function liveDemo() {
 /* ---------- ROI calculator ---------- */
 function roi() {
   const f = $('#roi-form');
-  let scenario = 0.25, last = 0;
+  let scenario = 0.10, last = 0;
   const bars = $('#roi-bars');
   bars.innerHTML = Array.from({ length: 12 }, (_, i) => `<i style="--dl:${i * 40}ms"></i>`).join('');
   const calc = () => {
@@ -170,7 +176,7 @@ function roi() {
     const yearly = monthly * 12;
     countUp($('#roi-year'), yearly, { from: last, duration: 900, format: x => money(x) });
     last = yearly;
-    $('#roi-returns').textContent = compact(avoided);
+    $('#roi-returns').textContent = compact(Math.round(avoided));
     $('#roi-month').textContent = money(monthly);
     $('#roi-kept').textContent = money(kept);
     // Ramp-up curve over the first year of rollout.

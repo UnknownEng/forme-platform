@@ -3,29 +3,28 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Forme — Fit intelligence for fashion platforms</title>
-  <meta name="description" content="Forme gives every shopper one portable fit profile and tells them the right size for every product, cutting size-related returns for fashion platforms." />
-  <meta name="theme-color" content="#06080b" />
+  <title>Forme — Fit tech for Pakistan's fashion brands</title>
+  <meta name="description" content="Forme gives every shopper one fit profile and tells them the right size for every product, cutting size returns and refused COD parcels for Pakistani fashion brands and marketplaces." />
+  <meta name="theme-color" content="#fff7e8" />
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/base.css" />
   <link rel="stylesheet" href="/css/landing.css" />
   <script type="module" src="/js/landing.js"></script>
 </head>
 <body>
   <canvas id="threads" aria-hidden="true"></canvas>
-  <div class="orbs" aria-hidden="true"><i></i><i></i><i></i></div>
-  <div class="grain" aria-hidden="true"></div>
+  <div class="blobs" aria-hidden="true"><i></i><i></i><i></i></div>
 
   <header class="nav" id="nav">
     <a href="/" class="logo"><span class="logo-mark"><span>f</span></span>forme</a>
     <nav class="nav-links" aria-label="Main">
       <a href="#how">How it works</a>
-      <a href="#demo">Live demo</a>
-      <a href="#roi">ROI</a>
+      <a href="#demo">Try it</a>
+      <a href="#roi">Savings</a>
       <a href="#developers">Developers</a>
       <a href="#pricing">Pricing</a>
     </nav>
@@ -40,31 +39,33 @@
     <!-- HERO -->
     <section class="hero">
       <div class="hero-copy">
-        <div class="eyebrow" data-reveal><span class="dot"></span>Fit intelligence for fashion platforms</div>
-        <h1 data-reveal style="--d:.08s">Sell the right size<br /><span class="serif grad">the first time.</span></h1>
-        <p class="lead" data-reveal style="--d:.16s">Forme gives every shopper one portable fit profile and tells them the right size for every product in your catalog. Fewer size returns, more confident checkouts, and fit data that improves with every order.</p>
+        <div class="eyebrow" data-reveal><span class="dot"></span>Fit tech for Pakistan's fashion brands</div>
+        <h1 data-reveal style="--d:.08s">Sell the right size <span class="serif grad">the first time.</span></h1>
+        <p class="lead" data-reveal style="--d:.16s">Forme gives every shopper one fit profile and tells them their size for every product, from lawn kurtas to denim. Fewer size returns, fewer refused COD parcels, happier customers.</p>
         <div class="hero-cta" data-reveal style="--d:.24s">
           <a class="btn magnet" href="/demo">Try the live store <span class="arrow">→</span></a>
-          <a class="btn ghost magnet" href="#roi">Estimate your savings</a>
+          <a class="btn ghost magnet" href="#roi">See what you'd save</a>
         </div>
         <div class="hero-proof" data-reveal style="--d:.32s">
-          <div><b>3</b><span>questions to a size</span></div>
-          <div><b>&lt;50<small>ms</small></b><span>engine response</span></div>
-          <div><b>1</b><span>script tag to install</span></div>
+          <div class="proof p1"><b>3</b><span>questions to a size</span></div>
+          <div class="proof p2"><b>&lt;50<small>ms</small></b><span>engine response</span></div>
+          <div class="proof p3"><b>1</b><span>script tag to install</span></div>
         </div>
       </div>
 
       <div class="stage" id="stage" aria-hidden="true">
-        <div class="floor"></div>
-        <div class="orbit o1"><span class="chip">M · 94%</span></div>
+        <span class="sticker s-a">no more size guessing 🫠</span>
+        <span class="sticker s-b">🇵🇰 made in Pakistan</span>
+        <span class="sticker s-c">fits fr ✨</span>
+        <div class="orbit o1"><span class="chip">M · 86%</span></div>
         <div class="orbit o2"><span class="chip violet">32 · Strong</span></div>
         <div class="orbit o3"><span class="chip mint">Chest ✓ ideal</span></div>
         <div class="fly f1" data-depth="40"></div>
         <div class="fly f2" data-depth="70"></div>
         <div class="fly f3" data-depth="25"></div>
         <div class="fly f4" data-depth="55"></div>
-        <div class="phone glass" data-depth="12">
-          <div class="phone-top"><span class="logo-mark sm"><span>f</span></span><b>Find my size</b><span class="pill lime">Live</span></div>
+        <div class="phone" data-depth="12">
+          <div class="phone-top"><span class="logo-mark sm"><span>f</span></span><b>Find my size</b><span class="pill lime">LIVE</span></div>
           <div class="phone-art" id="phone-art"></div>
           <div class="phone-name" id="phone-name">Everyday Cotton Tee</div>
           <div class="phone-result">
@@ -79,8 +80,8 @@
     <!-- MARQUEE -->
     <section class="marquee" aria-label="Who Forme is for">
       <div class="marquee-track">
-        <span>Marketplaces</span><i>✦</i><span>D2C brands</span><i>✦</i><span>Department stores</span><i>✦</i><span>Quick commerce</span><i>✦</i><span>Resale platforms</span><i>✦</i><span>Uniform suppliers</span><i>✦</i><span>Sportswear</span><i>✦</i><span>Ethnic wear</span><i>✦</i>
-        <span>Marketplaces</span><i>✦</i><span>D2C brands</span><i>✦</i><span>Department stores</span><i>✦</i><span>Quick commerce</span><i>✦</i><span>Resale platforms</span><i>✦</i><span>Uniform suppliers</span><i>✦</i><span>Sportswear</span><i>✦</i><span>Ethnic wear</span><i>✦</i>
+        <span>Pret &amp; lawn</span><i>✦</i><span>Menswear</span><i>✦</i><span>Kurtas</span><i>✦</i><span>Shalwar kameez</span><i>✦</i><span>Denim</span><i>✦</i><span>Marketplaces</span><i>✦</i><span>D2C brands</span><i>✦</i><span>Kids</span><i>✦</i>
+        <span>Pret &amp; lawn</span><i>✦</i><span>Menswear</span><i>✦</i><span>Kurtas</span><i>✦</i><span>Shalwar kameez</span><i>✦</i><span>Denim</span><i>✦</i><span>Marketplaces</span><i>✦</i><span>D2C brands</span><i>✦</i><span>Kids</span><i>✦</i>
       </div>
     </section>
 
@@ -88,52 +89,51 @@
     <section class="section problem">
       <div class="section-head" data-reveal>
         <div class="eyebrow"><span class="dot"></span>The problem</div>
-        <h2>Size guesswork is the most expensive<br />button in fashion e-commerce.</h2>
+        <h2>"Medium" means something different<br />at <span class="serif grad">every single brand.</span></h2>
       </div>
       <div class="problem-grid">
-        <article class="stat-card glass" data-reveal style="--d:.05s">
-          <div class="stat-num"><span data-count="30">0</span>–40%</div>
-          <p>of online apparel orders are commonly reported as returned, far above most other categories.</p>
+        <article class="stat-card glass c1" data-reveal style="--d:.05s">
+          <div class="stat-num"><span data-count="30">30</span>–40%</div>
+          <p>of online apparel orders are commonly reported as returned worldwide, far more than any other category.</p>
         </article>
-        <article class="stat-card glass" data-reveal style="--d:.12s">
-          <div class="stat-num">~<span data-count="50">0</span>%+</div>
-          <p>of those returns are usually put down to size or fit, the single biggest reason shoppers send clothes back.</p>
+        <article class="stat-card glass c2" data-reveal style="--d:.12s">
+          <div class="stat-num">#1</div>
+          <p>reason shoppers give for sending clothes back: the size or fit was wrong.</p>
         </article>
-        <article class="stat-card glass" data-reveal style="--d:.19s">
-          <div class="stat-num">2×</div>
-          <p>logistics cost on every return: the reverse pickup, inspection and restocking, plus a lost sale and an unhappy customer.</p>
+        <article class="stat-card glass c3" data-reveal style="--d:.19s">
+          <div class="stat-num">COD</div>
+          <p>Most Pakistani online orders are cash on delivery. A size doubt at the door becomes a refused parcel and a wasted two-way courier trip.</p>
         </article>
       </div>
-      <p class="fine" data-reveal>Ranges are widely cited industry estimates and vary by market and category. Use the calculator below with your own numbers.</p>
+      <p class="fine" data-reveal>Return figures are widely cited global industry estimates; Pakistani figures vary by brand and courier and are rarely published. Plug in your own numbers below.</p>
     </section>
 
     <!-- HOW -->
     <section class="section how" id="how">
       <div class="section-head" data-reveal>
         <div class="eyebrow"><span class="dot"></span>How it works</div>
-        <h2>From size chart to <span class="serif grad">confident checkout</span><br />in three steps.</h2>
+        <h2>From size chart to <span class="serif grad">confident checkout</span></h2>
       </div>
       <div class="steps">
-        <svg class="steps-line" viewBox="0 0 1000 120" preserveAspectRatio="none" aria-hidden="true"><path id="steps-path" d="M60 60 C 250 -10, 330 130, 500 60 S 760 -10, 940 60" fill="none" stroke="url(#sl)" stroke-width="2" stroke-dasharray="6 8"/><defs><linearGradient id="sl"><stop offset="0" stop-color="#d4f36b"/><stop offset=".5" stop-color="#7ef0c1"/><stop offset="1" stop-color="#a48bff"/></linearGradient></defs><circle r="6" fill="#d4f36b" class="steps-dot"><animateMotion dur="5s" repeatCount="indefinite"><mpath href="#steps-path"/></animateMotion></circle></svg>
         <article class="step glass" data-reveal style="--d:.05s">
           <div class="step-n">01</div>
           <div class="step-icon">⇄</div>
           <h3>Sync your size charts</h3>
-          <p>Push products through the REST API, bulk-import JSON, or edit charts in the console. Tops, bottoms and dresses, any size labels.</p>
+          <p>Push products through the API, bulk-import JSON, or edit charts in the console. Kurtas, pret, denim, any size labels.</p>
           <code>PUT /v1/products/{sku}</code>
         </article>
         <article class="step glass" data-reveal style="--d:.15s">
           <div class="step-n">02</div>
           <div class="step-icon">◎</div>
-          <h3>Shoppers answer three questions</h3>
-          <p>Height, weight and how they like clothes to fit. Exact measurements are optional. The profile is saved once and reused on every product.</p>
+          <h3>Shoppers answer 3 questions</h3>
+          <p>Height, weight and how they like clothes to fit. Exact measurements are optional. Saved once, used on every product.</p>
           <code>&lt;div data-forme-sku="…"&gt;</code>
         </article>
         <article class="step glass" data-reveal style="--d:.25s">
           <div class="step-n">03</div>
           <div class="step-icon">↻</div>
           <h3>Recommend, then learn</h3>
-          <p>The engine returns a size, a confidence score and fit notes. Keep/return feedback recalibrates every product that runs small or large.</p>
+          <p>A size, a confidence score and fit notes. Keep/return feedback recalibrates every product that runs small or large.</p>
           <code>POST /v1/feedback</code>
         </article>
       </div>
@@ -143,13 +143,14 @@
     <section class="section demo" id="demo">
       <div class="section-head" data-reveal>
         <div class="eyebrow"><span class="dot"></span>Live engine · real API calls</div>
-        <h2>Move the sliders. Watch the size change.</h2>
+        <h2>Move the sliders. <span class="serif grad">Watch the size change.</span></h2>
       </div>
       <div class="demo-grid">
         <div class="demo-controls glass" data-reveal>
-          <div class="field"><span class="label">Product</span><div class="prod-pick" id="prod-pick"></div></div>
+          <div class="field"><span class="label">Pick a product</span><div class="prod-pick" id="prod-pick"></div></div>
           <div class="slider"><div class="slider-top"><span class="label">Height</span><b><span id="v-height">175</span> cm</b></div><input type="range" id="height" min="145" max="200" value="175" aria-label="Height in centimetres" /></div>
           <div class="slider"><div class="slider-top"><span class="label">Weight</span><b><span id="v-weight">72</span> kg</b></div><input type="range" id="weight" min="40" max="130" value="72" aria-label="Weight in kilograms" /></div>
+          <div class="field"><span class="label">Sizing</span><div class="seg" id="sex"><button data-v="female">Women's</button><button data-v="male" class="on">Men's</button></div></div>
           <div class="field"><span class="label">Preferred fit</span><div class="seg" id="fit"><button data-v="Slim">Slim</button><button data-v="Regular" class="on">Regular</button><button data-v="Relaxed">Relaxed</button></div></div>
           <div class="field"><span class="label">Build</span><div class="seg" id="build"><button data-v="Slim">Slim</button><button data-v="Average" class="on">Average</button><button data-v="Broad">Broad</button></div></div>
         </div>
@@ -171,30 +172,30 @@
     <!-- ROI -->
     <section class="section roi" id="roi">
       <div class="section-head" data-reveal>
-        <div class="eyebrow"><span class="dot"></span>ROI calculator</div>
-        <h2>What fewer size returns are worth to you.</h2>
+        <div class="eyebrow"><span class="dot"></span>Savings calculator</div>
+        <h2>What fewer size returns <span class="serif grad">are worth to you.</span></h2>
       </div>
       <div class="roi-grid">
         <form class="roi-form glass" data-reveal id="roi-form">
-          <label class="slider"><div class="slider-top"><span class="label">Monthly apparel orders</span><b id="r-orders-v"></b></div><input type="range" name="orders" min="5000" max="2000000" step="5000" value="250000" /></label>
-          <label class="slider"><div class="slider-top"><span class="label">Average order value</span><b id="r-aov-v"></b></div><input type="range" name="aov" min="300" max="8000" step="50" value="1600" /></label>
-          <label class="slider"><div class="slider-top"><span class="label">Return rate</span><b id="r-rate-v"></b></div><input type="range" name="rate" min="5" max="50" step="1" value="28" /></label>
-          <label class="slider"><div class="slider-top"><span class="label">Share of returns due to size</span><b id="r-size-v"></b></div><input type="range" name="size" min="10" max="80" step="1" value="50" /></label>
-          <label class="slider"><div class="slider-top"><span class="label">Cost per return (logistics + handling)</span><b id="r-cost-v"></b></div><input type="range" name="cost" min="50" max="1500" step="10" value="450" /></label>
-          <div class="field"><span class="label">Size returns Forme prevents</span><div class="seg" id="r-scenario"><button type="button" data-v="0.15">Cautious 15%</button><button type="button" data-v="0.25" class="on">Expected 25%</button><button type="button" data-v="0.35">Strong 35%</button></div></div>
+          <label class="slider"><div class="slider-top"><span class="label">Monthly apparel orders</span><b id="r-orders-v"></b></div><input type="range" name="orders" min="1000" max="500000" step="1000" value="15000" /></label>
+          <label class="slider"><div class="slider-top"><span class="label">Average order value</span><b id="r-aov-v"></b></div><input type="range" name="aov" min="1000" max="20000" step="100" value="5500" /></label>
+          <label class="slider"><div class="slider-top"><span class="label">Return + refused-parcel rate</span><b id="r-rate-v"></b></div><input type="range" name="rate" min="5" max="50" step="1" value="25" /></label>
+          <label class="slider"><div class="slider-top"><span class="label">Share caused by size doubts</span><b id="r-size-v"></b></div><input type="range" name="size" min="10" max="80" step="1" value="45" /></label>
+          <label class="slider"><div class="slider-top"><span class="label">Cost per return (courier both ways + handling)</span><b id="r-cost-v"></b></div><input type="range" name="cost" min="100" max="2000" step="10" value="450" /></label>
+          <div class="field"><span class="label">Size returns Forme prevents</span><div class="seg" id="r-scenario"><button type="button" data-v="0.05">Cautious 5%</button><button type="button" data-v="0.10" class="on">Expected 10%</button><button type="button" data-v="0.15">Strong 15%</button></div><span class="fine" style="margin:6px 0 0">Published results from large European retailers using size advice sit around 4–10% fewer size returns. We would rather under-promise.</span></div>
         </form>
         <div class="roi-out" data-reveal style="--d:.1s">
           <div class="roi-big glass">
             <span class="eyebrow">Estimated yearly savings</span>
-            <div class="roi-num" id="roi-year">₹0</div>
+            <div class="roi-num" id="roi-year">Rs 0</div>
             <div class="roi-bars" id="roi-bars"></div>
           </div>
           <div class="roi-mini">
             <div class="glass"><span>Returns avoided / month</span><b id="roi-returns">0</b></div>
-            <div class="glass"><span>Monthly savings</span><b id="roi-month">₹0</b></div>
-            <div class="glass"><span>Revenue kept / month</span><b id="roi-kept">₹0</b></div>
+            <div class="glass"><span>Monthly savings</span><b id="roi-month">Rs 0</b></div>
+            <div class="glass"><span>Revenue kept / month</span><b id="roi-kept">Rs 0</b></div>
           </div>
-          <p class="fine">An estimate from your inputs. "Revenue kept" assumes half of avoided returns would otherwise have been refunded rather than exchanged.</p>
+          <p class="fine">An estimate from your inputs. "Revenue kept" assumes half of avoided returns would otherwise have been refunded or refused rather than exchanged.</p>
         </div>
       </div>
     </section>
@@ -203,45 +204,45 @@
     <section class="section features">
       <div class="section-head" data-reveal>
         <div class="eyebrow"><span class="dot"></span>Platform</div>
-        <h2>Everything a large catalog needs.</h2>
+        <h2>Everything a big catalog <span class="serif grad">actually needs.</span></h2>
       </div>
       <div class="bento">
-        <article class="tile glass t-wide tiltable" data-reveal>
-          <div class="tile-glow"></div>
-          <span class="pill lime">Network effect</span>
-          <h3>One profile, every store</h3>
-          <p>A shopper's Forme profile token works across every retailer on the network, so returning shoppers get a size instantly with no questions.</p>
+        <article class="tile glass t-wide tiltable c-sun" data-reveal>
+          <span class="pill">Coming soon: network</span>
+          <h3>One profile, every product</h3>
+          <p>Shoppers answer once and get a size on every product in your store. Next up: a Forme profile that follows them to every brand on the network.</p>
           <div class="profile-chips"><span>178 cm</span><span>76 kg</span><span>Regular fit</span><span class="on">fp_••••9KQ</span></div>
         </article>
-        <article class="tile glass tiltable" data-reveal style="--d:.06s">
-          <div class="tile-glow"></div>
-          <span class="pill mint">Self-learning</span>
+        <article class="tile glass tiltable c-mint" data-reveal style="--d:.06s">
+          <span class="pill">Self-learning</span>
           <h3>Learns from returns</h3>
           <p>"Too small" and "too large" outcomes recalibrate each product automatically.</p>
           <div class="calib"><i style="--h:30%"></i><i style="--h:55%"></i><i style="--h:42%"></i><i style="--h:75%"></i><i style="--h:62%"></i><i style="--h:88%"></i></div>
         </article>
-        <article class="tile glass tiltable" data-reveal style="--d:.12s">
-          <div class="tile-glow"></div>
-          <span class="pill violet">Scale</span>
-          <h3>Batch sizes for listing pages</h3>
-          <p>Show "Your size: M" on 60 products at once with a single call.</p>
+        <article class="tile glass tiltable c-pink" data-reveal style="--d:.12s">
+          <span class="pill">Desi sizing</span>
+          <h3>Built for Pakistani pret</h3>
+          <p>Kurtas, shalwar kameez, lawn and denim, each brand with its own chart and size labels.</p>
+        </article>
+        <article class="tile glass tiltable c-blue" data-reveal style="--d:.06s">
+          <span class="pill">Scale</span>
+          <h3>"Your size: M" on listing pages</h3>
+          <p>Sizes for 60 products in a single call.</p>
           <code class="mono">POST /v1/recommend/batch</code>
         </article>
-        <article class="tile glass tiltable" data-reveal style="--d:.06s">
-          <div class="tile-glow"></div>
-          <span class="pill coral">Analytics</span>
-          <h3>Proof for your CFO</h3>
-          <p>Widget opens, add-to-cart lift, influenced revenue, and return rates for followed vs ignored advice.</p>
+        <article class="tile glass tiltable c-lime" data-reveal style="--d:.12s">
+          <span class="pill">Proof</span>
+          <h3>Numbers for your CFO</h3>
+          <p>Widget opens, add-to-cart lift, influenced revenue, and return rates when shoppers followed vs ignored our size.</p>
         </article>
-        <article class="tile glass t-wide tiltable" data-reveal style="--d:.12s">
-          <div class="tile-glow"></div>
+        <article class="tile glass t-wide tiltable" data-reveal style="--d:.18s">
           <span class="pill">Security &amp; privacy</span>
-          <h3>Built for enterprise review</h3>
+          <h3>Built with security in mind</h3>
           <ul class="checks">
             <li>Publishable and secret keys, secret keys stored hashed</li>
-            <li>Per-account origin allow-lists and rate limits</li>
-            <li>Profile erasure endpoint for data-protection requests</li>
-            <li>Body data only. No names, emails or photos required</li>
+            <li>Per-brand origin allow-lists and rate limits</li>
+            <li>One-tap "forget me" for shoppers, with an erasure API</li>
+            <li>Body measurements only. No names, phone numbers or photos. <a href="/privacy" style="text-decoration:underline">Privacy</a></li>
           </ul>
         </article>
       </div>
@@ -252,8 +253,8 @@
       <div class="dev-grid">
         <div data-reveal>
           <div class="eyebrow"><span class="dot"></span>Developers</div>
-          <h2>Live in an afternoon.<br /><span class="serif grad">Deep when you need it.</span></h2>
-          <p class="lead">Drop in the widget for a no-code launch, or call the REST API from your own UI and apps. Full OpenAPI spec included.</p>
+          <h2>Live in an afternoon. <span class="serif grad">Deep when you need it.</span></h2>
+          <p class="lead">Drop in the widget for a no-code launch, or call the REST API from your own app. Works with Shopify, WooCommerce and custom stores. Full OpenAPI spec included.</p>
           <div class="hero-cta"><a class="btn" href="/docs">Read the API docs <span class="arrow">→</span></a><a class="btn ghost" href="/openapi.json">openapi.json</a></div>
         </div>
         <div class="code glass" data-reveal style="--d:.1s">
@@ -272,26 +273,26 @@
     <section class="section pricing" id="pricing">
       <div class="section-head" data-reveal>
         <div class="eyebrow"><span class="dot"></span>Pricing</div>
-        <h2>Pay for outcomes, not seats.</h2>
+        <h2>Pricing that <span class="serif grad">pays for itself.</span></h2>
       </div>
       <div class="plans">
         <article class="plan glass" data-reveal>
-          <h3>Starter</h3><div class="price">₹0<small>/month</small></div>
+          <h3>Starter</h3><div class="price">Rs 0<small>/month</small></div>
           <p>For pilots and small brands.</p>
           <ul class="checks"><li>Up to 5,000 recommendations / mo</li><li>Widget + REST API</li><li>Core analytics</li></ul>
           <a class="btn ghost" href="/console#signup">Start free</a>
         </article>
         <article class="plan glass featured" data-reveal style="--d:.08s">
           <span class="pill lime">Most popular</span>
-          <h3>Growth</h3><div class="price">₹0.40<small>/recommendation</small></div>
-          <p>For scaling D2C brands and stores.</p>
-          <ul class="checks"><li>Unlimited products</li><li>Return-feedback calibration</li><li>Batch API for listing pages</li><li>Email support</li></ul>
+          <h3>Growth</h3><div class="price">Rs 9,999<small>/month</small></div>
+          <p>For growing pret and menswear brands. Up to 50,000 recommendations, then Rs 0.25 each.</p>
+          <ul class="checks"><li>Unlimited products</li><li>Return-feedback calibration</li><li>Batch API for listing pages</li><li>WhatsApp + email support</li></ul>
           <a class="btn" href="/console#signup">Start 30-day trial</a>
         </article>
         <article class="plan glass" data-reveal style="--d:.16s">
           <h3>Enterprise</h3><div class="price">Custom</div>
-          <p>For marketplaces and large platforms.</p>
-          <ul class="checks"><li>Share of measured return savings</li><li>Dedicated deployment and data residency</li><li>SLA, SSO and security review</li><li>Fit-data API and model tuning</li></ul>
+          <p>For marketplaces and big brands.</p>
+          <ul class="checks"><li>Share of measured return savings</li><li>Dedicated deployment</li><li>SLA and security review</li><li>Fit-data insights and model tuning</li></ul>
           <a class="btn ghost" href="/console#signup">Talk to us</a>
         </article>
       </div>
@@ -300,9 +301,9 @@
     <!-- CTA -->
     <section class="cta" data-reveal>
       <div class="cta-inner glass">
-        <div class="cta-glow"></div>
-        <h2>Give every shopper<br /><span class="serif grad">their size, everywhere.</span></h2>
-        <p class="lead">Explore the demo workspace with 60 days of sample data, or create your own account in under a minute.</p>
+        <span class="sticker s-cta">pilot slots open 👀</span>
+        <h2>Give every shopper <span class="serif grad">their size, everywhere.</span></h2>
+        <p class="lead">Explore the demo workspace with 60 days of sample data, or apply for a free pilot on one category.</p>
         <div class="hero-cta center"><a class="btn magnet" href="/console">Open the console <span class="arrow">→</span></a><a class="btn ghost magnet" href="/demo">See the shopper experience</a></div>
       </div>
     </section>
@@ -310,8 +311,8 @@
 
   <footer class="footer">
     <a href="/" class="logo"><span class="logo-mark"><span>f</span></span>forme</a>
-    <nav><a href="/demo">Demo store</a><a href="/console">Console</a><a href="/docs">API docs</a><a href="/v1/health">Status</a></nav>
-    <span class="muted">© 2026 Forme. Sample data shown is illustrative.</span>
+    <nav><a href="/demo">Demo store</a><a href="/console">Console</a><a href="/docs">API docs</a><a href="/privacy">Privacy</a><a href="/v1/health">Status</a></nav>
+    <span class="muted">© 2026 Forme · Made in Pakistan 🇵🇰 · Sample data is illustrative · <a href="/privacy">Privacy</a></span>
   </footer>
 </body>
 </html>
