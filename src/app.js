@@ -30,11 +30,30 @@ function createApp(overrides = {}) {
   }
   const auth = createAuth(db, { sessionTtlMs: cfg.SESSION_TTL_MS, secret: cfg.SESSION_SECRET });
   const services = createServices(db);
-  const ready = (async () => {
-    real = await open(cfg);
-    if (cfg.SEED_DEMO) await seedDemo(db, auth, cfg.DEMO_ACCOUNT);
-  })();
-  ready.catch(e => console.error('[forme] database start-up failed:', e.message));
+  // Start-up (connect, create tables, seed demo). If it fails — e.g. a serverless database
+  // waking from sleep — the next request tries again instead of the instance staying broken.
+  let startup = null, lastError = null;
+  const start = () => {
+    startup = (async () => {
+      if (!real) real = await open(cfg);
+      if (cfg.SEED_DEMO) await seedDemo(db, auth, cfg.DEMO_ACCOUNT);
+    })().catch(async e => {
+      lastError = e;
+      console.error('[forme] database start-up failed:', e.code || '', e.message);
+      if (real) { await real.close().catch(() => {}); real = null; }
+      startup = null;
+      throw e;
+    });
+    return startup;
+  };
+  const ensureReady = async () => {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try { return await (startup || start()); }
+      catch (e) { if (attempt === 2) throw e; await new Promise(r => setTimeout(r, 400 * (attempt + 1))); }
+    }
+  };
+  const ready = ensureReady();
+  ready.catch(() => {});
 
   const limits = {
     auth: rateLimiter({ windowMs: 60_000, max: 12 }),
@@ -60,9 +79,11 @@ function createApp(overrides = {}) {
 
   const handler = async (req, res) => {
     const started = Date.now();
-    try { await ready; } catch (e) {
-      res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8', 'Retry-After': '10' });
-      return res.end(JSON.stringify({ error: { code: 'database_unavailable', message: 'The database is not reachable right now. Please try again shortly.' } }));
+    try { await (startup || ensureReady()); } catch (e) {
+      // Only a short error class (e.g. ETIMEDOUT, 28P01) — never the connection string.
+      const detail = String(e.code || e.name || 'error').replace(/[^\w.-]/g, '').slice(0, 32);
+      res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8', 'Retry-After': '5' });
+      return res.end(JSON.stringify({ error: { code: 'database_unavailable', detail, message: 'The database is not reachable right now. Please try again shortly.' } }));
     }
     const url = new URL(req.url, 'http://localhost');
     const isApi = url.pathname.startsWith('/v1/') || url.pathname.startsWith('/api/');

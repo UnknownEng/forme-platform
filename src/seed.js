@@ -43,6 +43,9 @@ async function insertMany(db, table, cols, rows, chunk = 250) {
 }
 
 async function seedDemo(db, auth, demoAccount) {
+  // Fast path: already seeded at this version — no lock, one quick read.
+  const done = await db.all("SELECT key, value FROM meta WHERE key IN ('demo_seeded', 'demo_version')");
+  if (done.length === 2 && done.find(r => r.key === 'demo_version').value === DEMO_VERSION) return null;
   // One server instance seeds at a time; the others wait and then find it done.
   return db.withLock('forme-demo-seed', async L => {
     const seeded = await L.get("SELECT value FROM meta WHERE key = 'demo_seeded'");

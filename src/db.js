@@ -178,6 +178,14 @@ async function migratePg(db) {
   for (const s of statements(TABLES(PG_TYPES))) await db.run(s);
   for (const [table, col, type] of ADDED_COLUMNS) await db.run(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS ${col} ${PG_TYPES[type] || type}`);
   await db.run(EMAIL_INDEX);
+  await db.run("INSERT INTO meta (key, value) VALUES ('schema_version', ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value", SCHEMA_VERSION);
+}
+// Changes whenever the table definitions change, so a new deploy migrates once.
+const SCHEMA_VERSION = require('node:crypto').createHash('sha256')
+  .update(JSON.stringify([TABLES(PG_TYPES), ADDED_COLUMNS, EMAIL_INDEX])).digest('hex').slice(0, 16);
+async function schemaCurrent(db) {
+  try { return (await db.get("SELECT value FROM meta WHERE key = 'schema_version'"))?.value === SCHEMA_VERSION; }
+  catch { return false; }  // first run: tables not there yet
 }
 
 async function openPostgres(url) {
@@ -185,7 +193,7 @@ async function openPostgres(url) {
   pg.types.setTypeParser(20, v => Number(v));        // BIGINT (COUNT, timestamps) as numbers
   pg.types.setTypeParser(1700, v => parseFloat(v));  // NUMERIC (AVG, ROUND) as numbers
   const local = /@(localhost|127\.0\.0\.1)[:/]/.test(url) || /sslmode=disable/.test(url);
-  const pool = new pg.Pool({ connectionString: url, max: Number(process.env.FORME_DB_POOL || 3), idleTimeoutMillis: 10_000, ssl: local ? false : { rejectUnauthorized: false } });
+  const pool = new pg.Pool({ connectionString: url, max: Number(process.env.FORME_DB_POOL || 3), idleTimeoutMillis: 10_000, connectionTimeoutMillis: 8_000, ssl: local ? false : { rejectUnauthorized: false } });
   const transaction = async fn => {
     const c = await pool.connect();
     try { await c.query('BEGIN'); const r = await fn((s, p) => c.query(s, p)); await c.query('COMMIT'); return r; }
@@ -193,7 +201,8 @@ async function openPostgres(url) {
     finally { c.release(); }
   };
   const db = pgAdapter((s, p) => pool.query(s, p), transaction, { close: () => pool.end(), persistent: true, location: url.replace(/\/\/[^@]*@/, '//***@') });
-  await db.withLock('forme-migrate', migratePg);
+  pool.on('error', e => console.error('[forme] idle database connection dropped:', e.code || e.message));
+  if (!(await schemaCurrent(db))) await db.withLock('forme-migrate', migratePg);
   return db;
 }
 
