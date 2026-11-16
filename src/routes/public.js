@@ -9,10 +9,10 @@ const EVENT_TYPES = ['widget_open', 'size_selected', 'add_to_cart', 'purchase'];
 const OUTCOMES = ['kept', 'too_small', 'too_large', 'returned_other'];
 
 function register(router, { db, services, config, limits, selfOrigin }) {
-  const keyAuth = kinds => ctx => {
+  const keyAuth = kinds => async ctx => {
     const header = ctx.req.headers.authorization || '';
     const raw = header.startsWith('Bearer ') ? header.slice(7).trim() : ctx.req.headers['x-forme-key'];
-    const key = ctx.auth.resolveKey(raw);
+    const key = await ctx.auth.resolveKey(raw);
     if (!key) fail(401, 'invalid_api_key', 'Missing or invalid API key. Send Authorization: Bearer <key>.');
     if (!kinds.includes(key.kind)) fail(403, 'wrong_key_type', key.kind === 'public' ? 'This endpoint needs a secret key (sk_live_…).' : 'Use a publishable key (pk_live_…) here.');
     const origin = ctx.req.headers.origin;
@@ -34,18 +34,18 @@ function register(router, { db, services, config, limits, selfOrigin }) {
   const secret = keyAuth(['secret']);
 
   // Shopper profiles are global so one Forme profile works at every store.
-  const profileFromToken = raw => {
+  const profileFromToken = async raw => {
     if (typeof raw !== 'string' || !/^fp_[A-Za-z0-9_-]{20,}$/.test(raw)) return null;
-    const row = db.get('SELECT * FROM profiles WHERE token_hash = ?', sha256(raw));
+    const row = await db.get('SELECT * FROM profiles WHERE token_hash = ?', sha256(raw));
     return row ? { id: row.id, data: JSON.parse(row.data) } : null;
   };
-  const resolveProfile = (ctx, body) => {
+  const resolveProfile = async (ctx, body) => {
     if (body.profile) {
       const v = validate.profile(body.profile);
       if (v.error) fail(400, 'invalid_profile', v.error);
       return { id: null, data: v.value };
     }
-    const p = profileFromToken(body.profile_token || ctx.req.headers['x-forme-profile']);
+    const p = await profileFromToken(body.profile_token || ctx.req.headers['x-forme-profile']);
     if (!p) fail(400, 'profile_required', 'Send a profile object or a valid profile_token.');
     return p;
   };
@@ -61,22 +61,23 @@ function register(router, { db, services, config, limits, selfOrigin }) {
   router.post('/v1/recommend', any, async ctx => {
     const b = await readJson(ctx.req);
     if (typeof b.sku !== 'string') fail(400, 'sku_required', 'sku is required.');
-    const product = services.products.get(ctx.merchant.id, b.sku);
+    const product = await services.products.get(ctx.merchant.id, b.sku);
     if (!product) fail(404, 'product_not_found', `No product with SKU ${b.sku}. Sync it with PUT /v1/products/{sku}.`);
-    const profile = resolveProfile(ctx, b);
+    const profile = await resolveProfile(ctx, b);
     return services.recommend(ctx.merchant.id, product, profile.data, profile.id);
   });
 
   router.post('/v1/recommend/batch', any, async ctx => {
     const b = await readJson(ctx.req);
     if (!Array.isArray(b.skus) || !b.skus.length || b.skus.length > 60) fail(400, 'invalid_skus', 'skus must list 1–60 SKUs.');
-    const profile = resolveProfile(ctx, b);
-    const results = b.skus.map(sku => {
-      const p = typeof sku === 'string' && services.products.get(ctx.merchant.id, sku);
+    const profile = await resolveProfile(ctx, b);
+    const results = [];
+    for (const sku of b.skus) results.push(await (async () => {
+      const p = typeof sku === 'string' && await services.products.get(ctx.merchant.id, sku);
       if (!p) return { sku, error: 'product_not_found' };
-      const r = services.recommend(ctx.merchant.id, p, profile.data, profile.id, { log: false });
+      const r = await services.recommend(ctx.merchant.id, p, profile.data, profile.id, { log: false });
       return { sku, size: r.size, confidence: r.confidence, label: r.label };
-    });
+    })());
     return { results };
   });
 
@@ -88,25 +89,25 @@ function register(router, { db, services, config, limits, selfOrigin }) {
     const raw = token('fp', 24);
     const pid = id('prf');
     const now = Date.now();
-    db.run('INSERT INTO profiles (id, token_hash, data, created_by, created_at, updated_at) VALUES (?,?,?,?,?,?)', pid, sha256(raw), JSON.stringify(v.value), ctx.merchant.id, now, now);
+    await db.run('INSERT INTO profiles (id, token_hash, data, created_by, created_at, updated_at) VALUES (?,?,?,?,?,?)', pid, sha256(raw), JSON.stringify(v.value), ctx.merchant.id, now, now);
     return { status: 201, body: { profile_token: raw, profile: v.value } };
   });
-  router.get('/v1/profiles/me', any, ctx => {
-    const p = profileFromToken(ctx.req.headers['x-forme-profile']);
+  router.get('/v1/profiles/me', any, async ctx => {
+    const p = await profileFromToken(ctx.req.headers['x-forme-profile']);
     if (!p) fail(404, 'profile_not_found', 'Unknown profile token.');
     return { profile: p.data };
   });
   router.put('/v1/profiles/me', any, async ctx => {
-    const p = profileFromToken(ctx.req.headers['x-forme-profile']);
+    const p = await profileFromToken(ctx.req.headers['x-forme-profile']);
     if (!p) fail(404, 'profile_not_found', 'Unknown profile token.');
     const v = validate.profile(await readJson(ctx.req));
     if (v.error) fail(400, 'invalid_profile', v.error);
-    db.run('UPDATE profiles SET data = ?, updated_at = ? WHERE id = ?', JSON.stringify(v.value), Date.now(), p.id);
+    await db.run('UPDATE profiles SET data = ?, updated_at = ? WHERE id = ?', JSON.stringify(v.value), Date.now(), p.id);
     return { profile: v.value };
   });
-  router.delete('/v1/profiles/me', any, ctx => {
+  router.delete('/v1/profiles/me', any, async ctx => {
     const raw = ctx.req.headers['x-forme-profile'];
-    const r = raw ? db.run('DELETE FROM profiles WHERE token_hash = ?', sha256(raw)) : { changes: 0 };
+    const r = typeof raw === 'string' && raw ? await db.run('DELETE FROM profiles WHERE token_hash = ?', sha256(raw)) : { changes: 0 };
     if (!r.changes) fail(404, 'profile_not_found', 'Unknown profile token.');
     return { deleted: true };
   });
@@ -119,12 +120,12 @@ function register(router, { db, services, config, limits, selfOrigin }) {
     // so nobody can scribble fake products or IDs into a brand's activity feed.
     let product = null;
     if (b.sku != null) {
-      product = typeof b.sku === 'string' ? services.products.get(ctx.merchant.id, b.sku) : null;
+      product = typeof b.sku === 'string' ? await services.products.get(ctx.merchant.id, b.sku) : null;
       if (!product) fail(400, 'invalid_event', 'sku must be a product in your catalog.');
     }
     if (b.size != null && !(typeof b.size === 'string' && /^[A-Za-z0-9 ./+-]{1,10}$/.test(b.size))) fail(400, 'invalid_event', 'size must be a short size label.');
     const rec = b.rec_id != null
-      ? (typeof b.rec_id === 'string' && db.get('SELECT id, sku FROM recommendations WHERE id = ? AND merchant_id = ?', b.rec_id, ctx.merchant.id))
+      ? (typeof b.rec_id === 'string' && await db.get('SELECT id, sku FROM recommendations WHERE id = ? AND merchant_id = ?', b.rec_id, ctx.merchant.id))
       : null;
     if (b.rec_id != null && !rec) fail(400, 'invalid_event', 'rec_id does not match a recommendation for this account.');
     if (rec && product && rec.sku !== product.sku) fail(400, 'invalid_event', 'rec_id belongs to a different product.');
@@ -137,38 +138,38 @@ function register(router, { db, services, config, limits, selfOrigin }) {
         // claim more than a few units of the catalog price. Send purchases from your
         // server with a secret key for billing-grade numbers.
         if (!rec) fail(400, 'invalid_event', 'Browser purchase events must include the rec_id of a recommendation for this product. Report other purchases from your server with a secret key.');
-        if (db.get("SELECT 1 FROM events WHERE merchant_id = ? AND type = 'purchase' AND rec_id = ?", ctx.merchant.id, rec.id)) return { status: 202, body: { accepted: true, duplicate: true } };
+        if (await db.get("SELECT 1 FROM events WHERE merchant_id = ? AND type = 'purchase' AND rec_id = ?", ctx.merchant.id, rec.id)) return { status: 202, body: { accepted: true, duplicate: true } };
         value = Math.min(Number(value ?? product.price), product.price * 5);
       }
     }
-    services.track(ctx.merchant.id, { type: b.type, sku: product?.sku ?? null, rec_id: rec?.id ?? null, size: b.size ?? null, value });
+    await services.track(ctx.merchant.id, { type: b.type, sku: product?.sku ?? null, rec_id: rec?.id ?? null, size: b.size ?? null, value });
     return { status: 202, body: { accepted: true } };
   });
 
   router.post('/v1/feedback', secret, async ctx => {
     const b = await readJson(ctx.req);
-    const fp = typeof b.sku === 'string' ? services.products.get(ctx.merchant.id, b.sku) : null;
+    const fp = typeof b.sku === 'string' ? await services.products.get(ctx.merchant.id, b.sku) : null;
     if (!fp) fail(404, 'product_not_found', 'Unknown sku.');
     if (!validate.str(String(b.size ?? ''), 10)) fail(400, 'invalid_size', 'size is required.');
     if (!fp.chart.some(r => r.size === String(b.size))) fail(400, 'invalid_size', `size must be one of: ${fp.chart.map(r => r.size).join(', ')}`);
     if (!OUTCOMES.includes(b.outcome)) fail(400, 'invalid_outcome', `outcome must be one of: ${OUTCOMES.join(', ')}`);
-    return { status: 201, body: services.addFeedback(ctx.merchant.id, { sku: b.sku, size: String(b.size), outcome: b.outcome, rec_id: typeof b.rec_id === 'string' ? b.rec_id : null }) };
+    return { status: 201, body: await services.addFeedback(ctx.merchant.id, { sku: b.sku, size: String(b.size), outcome: b.outcome, rec_id: typeof b.rec_id === 'string' ? b.rec_id : null }) };
   });
 
-  router.get('/v1/products', secret, ctx => ({ products: services.products.list(ctx.merchant.id, { q: ctx.url.searchParams.get('q') || '' }) }));
-  router.get('/v1/products/:sku', any, ctx => {
-    const p = services.products.get(ctx.merchant.id, ctx.params.sku);
+  router.get('/v1/products', secret, async ctx => ({ products: await services.products.list(ctx.merchant.id, { q: ctx.url.searchParams.get('q') || '' }) }));
+  router.get('/v1/products/:sku', any, async ctx => {
+    const p = await services.products.get(ctx.merchant.id, ctx.params.sku);
     if (!p) fail(404, 'product_not_found', 'Unknown sku.');
     return { product: ctx.keyKind === 'secret' ? p : publicProduct(p) };
   });
   router.put('/v1/products/:sku', secret, async ctx => {
     const v = validate.product({ ...(await readJson(ctx.req)), sku: ctx.params.sku });
     if (v.error) fail(400, 'invalid_product', v.error);
-    const r = services.products.upsert(ctx.merchant.id, v.value);
+    const r = await services.products.upsert(ctx.merchant.id, v.value);
     return { status: r.created ? 201 : 200, body: { product: r.product, created: r.created } };
   });
-  router.delete('/v1/products/:sku', secret, ctx => {
-    if (!services.products.remove(ctx.merchant.id, ctx.params.sku)) fail(404, 'product_not_found', 'Unknown sku.');
+  router.delete('/v1/products/:sku', secret, async ctx => {
+    if (!await services.products.remove(ctx.merchant.id, ctx.params.sku)) fail(404, 'product_not_found', 'Unknown sku.');
     return { deleted: true };
   });
   router.post('/v1/products/bulk', secret, async ctx => {
@@ -176,7 +177,7 @@ function register(router, { db, services, config, limits, selfOrigin }) {
     if (!Array.isArray(b.products) || !b.products.length || b.products.length > 2000) fail(400, 'invalid_bulk', 'Send { "products": [...] } with 1–2000 products.');
     const results = b.products.map((p, i) => { const v = validate.product(p); return v.error ? { index: i, sku: p?.sku ?? null, error: v.error } : { index: i, value: v.value }; });
     let created = 0, updated = 0;
-    db.tx(() => { for (const r of results) if (r.value) services.products.upsert(ctx.merchant.id, r.value).created ? created++ : updated++; });
+    await db.tx(async t => { const ts = services.bind(t); for (const r of results) if (r.value) (await ts.products.upsert(ctx.merchant.id, r.value)).created ? created++ : updated++; });
     return { created, updated, failed: results.filter(r => r.error).map(({ value, ...r }) => r) };
   });
 }

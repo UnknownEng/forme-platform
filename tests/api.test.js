@@ -17,7 +17,7 @@ const product = {
 
 before(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), 'forme-test-'));
-  app = createApp({ DATA_DIR: dir, SEED_DEMO: false, LOG_REQUESTS: false });
+  app = createApp({ DATABASE_URL: process.env.FORME_TEST_DB || '', DATA_DIR: dir, SEED_DEMO: false, LOG_REQUESTS: false });
   await new Promise(r => app.server.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${app.server.address().port}`;
 });
@@ -56,7 +56,7 @@ test('secret key is shown once and stored only as a hash', async () => {
   assert.match(sk, /^sk_live_/);
   const list = await req('/api/keys', { headers: { cookie } });
   assert.equal(list.body.keys.find(k => k.kind === 'secret').key, null);
-  const rows = app.db.all("SELECT key_hash, public_token FROM api_keys WHERE kind = 'secret'");
+  const rows = await app.db.all("SELECT key_hash, public_token FROM api_keys WHERE kind = 'secret'");
   assert.ok(rows.every(k => k.public_token === null && k.key_hash !== sk));
 });
 
@@ -138,7 +138,7 @@ test('static pages, security headers and 404s', async () => {
 
 test('demo seed creates a working demo workspace', async () => {
   const d2 = fs.mkdtempSync(path.join(os.tmpdir(), 'forme-seed-'));
-  const seeded = createApp({ DATA_DIR: d2, LOG_REQUESTS: false });
+  const seeded = createApp({ DATABASE_URL: process.env.FORME_TEST_DB || '', DATA_DIR: d2, LOG_REQUESTS: false });
   await new Promise(r => seeded.server.listen(0, '127.0.0.1', r));
   const b = `http://127.0.0.1:${seeded.server.address().port}`;
   try {
@@ -146,7 +146,7 @@ test('demo seed creates a working demo workspace', async () => {
     assert.equal(cfg.products.length, 12);
     const r = await fetch(b + '/v1/recommend', { method: 'POST', headers: bearer(cfg.publicKey), body: JSON.stringify({ sku: 'NL-JNS-08', profile: { height: 175, waist: 84 } }) });
     assert.equal(r.status, 200);
-    const n = seeded.db.get('SELECT COUNT(*) AS n FROM events').n;
+    const n = Number((await seeded.db.get('SELECT COUNT(*) AS n FROM events')).n);
     assert.ok(n > 1000);
   } finally {
     await new Promise(r => seeded.server.close(r));

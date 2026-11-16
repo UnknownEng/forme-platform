@@ -13,7 +13,7 @@ const call = async (p, opts = {}) => { const r = await fetch(base + p, opts); re
 
 before(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), 'forme-sec-test-'));
-  app = createApp({ DATA_DIR: dir, LOG_REQUESTS: false, ADMIN_PASSWORD: 'x'.repeat(16), TRUST_PROXY: true });
+  app = createApp({ DATABASE_URL: process.env.FORME_TEST_DB || '', DATA_DIR: dir, LOG_REQUESTS: false, ADMIN_PASSWORD: 'x'.repeat(16), TRUST_PROXY: true });
   await new Promise(r => app.server.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${app.server.address().port}`;
   pk = (await call('/demo-config.json')).body.publicKey;

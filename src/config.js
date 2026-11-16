@@ -4,6 +4,8 @@ const crypto = require('node:crypto');
 
 const ROOT = path.resolve(__dirname, '..');
 const ON_VERCEL = !!process.env.VERCEL;
+// Postgres connection (Vercel/Neon set one of these when a database is connected).
+const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL || '';
 
 if (ON_VERCEL && !process.env.FORME_SECRET) {
   console.warn('[forme] FORME_SECRET is not set. Each server instance will sign sessions with its own random key, so console logins will fail at random. Add FORME_SECRET in Vercel → Settings → Environment Variables, then redeploy.');
@@ -15,6 +17,7 @@ module.exports = {
   // Vercel functions can only write to /tmp, which is wiped between instances.
   DATA_DIR: process.env.FORME_DATA_DIR || (ON_VERCEL ? '/tmp/forme' : path.join(ROOT, 'data')),
   ON_VERCEL,
+  DATABASE_URL,
   TRUST_PROXY: ON_VERCEL || process.env.FORME_TRUST_PROXY === '1',
   // Signs session cookies. Set FORME_SECRET in production so sessions survive restarts
   // and work across server instances.
@@ -30,7 +33,7 @@ module.exports = {
   ENGINE_VERSION: '2.1.0',
   // On Vercel each instance has its own temporary database, so new accounts would vanish.
   // Keep sign-ups closed there until a shared database is configured.
-  SIGNUPS_OPEN: process.env.FORME_SIGNUPS === '1' || (process.env.FORME_SIGNUPS !== '0' && !ON_VERCEL),
+  SIGNUPS_OPEN: process.env.FORME_SIGNUPS === '1' || (process.env.FORME_SIGNUPS !== '0' && (!ON_VERCEL || !!DATABASE_URL)),
   SECURE_COOKIES: process.env.FORME_SECURE_COOKIES === '1' || ON_VERCEL,
   DEMO_ACCOUNT: { email: 'demo@forme.dev', password: 'forme-demo-2026', name: 'Northline Supply (demo)' },
 };

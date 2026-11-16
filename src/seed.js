@@ -33,42 +33,35 @@ function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6d2b79f5) >>>
 // Bump when the demo catalog or story changes; older demo workspaces are rebuilt.
 const DEMO_VERSION = '5-pk';
 
-function seedDemo(db, auth, demoAccount) {
-  const seeded = db.get("SELECT value FROM meta WHERE key = 'demo_seeded'");
-  if (seeded && db.get("SELECT value FROM meta WHERE key = 'demo_version'")?.value === DEMO_VERSION) return null;
-  if (seeded) {
-    // Only the demo workspace is removed; real merchant accounts are untouched.
-    db.tx(() => {
-      for (const t of ['recommendations', 'events', 'feedback', 'products', 'api_keys', 'sessions']) db.run(`DELETE FROM ${t} WHERE merchant_id = ?`, seeded.value);
-      db.run('DELETE FROM merchants WHERE id = ?', seeded.value);
-      db.run("DELETE FROM meta WHERE key IN ('demo_seeded', 'demo_version')");
-    });
+// Insert many rows with one statement per chunk (fast on a remote Postgres too).
+async function insertMany(db, table, cols, rows, chunk = 250) {
+  for (let i = 0; i < rows.length; i += chunk) {
+    const part = rows.slice(i, i + chunk);
+    const one = `(${cols.map(() => '?').join(',')})`;
+    await db.run(`INSERT INTO ${table} (${cols.join(', ')}) VALUES ${part.map(() => one).join(',')}`, ...part.flat());
   }
-  const rand = rng(20261115);
-  // Deterministic ids: every server instance (e.g. each Vercel function) rebuilds
-  // exactly the same demo workspace, so demo logins and keys work everywhere.
-  const id = prefix => `${prefix}_${Math.floor(rand() * 2 ** 52).toString(36)}${Math.floor(rand() * 2 ** 30).toString(36)}`;
-  const DEMO_PK = { id: 'key_demo_public', key: `pk_live_demo${sha256('forme-demo-public-key').slice(0, 28)}` };
-  const pick = arr => arr[Math.floor(rand() * arr.length)];
-  const gauss = () => (rand() + rand() + rand() + rand() - 2) * 1.2;
-  const mid = 'mer_demo_northline';
-  const DAY = 86400000;
-  const now = Math.floor(Date.now() / DAY) * DAY + DAY - 1;
-  const realNow = Date.now();
+}
 
-  db.tx(() => {
-    db.run('INSERT INTO merchants (id, name, email, password_hash, plan, return_cost, widget, currency, created_at) VALUES (?,?,?,?,?,?,?,?,?)',
-      mid, demoAccount.name, demoAccount.email, hashPassword(demoAccount.password), 'enterprise', 450, JSON.stringify({ accent: '#c6ff3d', label: 'Find my size', position: 'inline' }), 'PKR', now - 70 * DAY);
-    auth.createKey(mid, 'public', 'Storefront widget', DEMO_PK);
-    for (const p of DEMO_PRODUCTS) {
-      const t = now - 65 * DAY;
-      db.run(`INSERT INTO products (id, merchant_id, sku, brand, name, category, fit, price, description, image_url, color, chart, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-        `prd_demo_${p.sku}`, mid, p.sku, 'Northline', p.name, p.category, p.fit, p.price, p.description, '', p.color, JSON.stringify(p.chart), t, t);
-    }
+async function seedDemo(db, auth, demoAccount) {
+  // One server instance seeds at a time; the others wait and then find it done.
+  return db.withLock('forme-demo-seed', async L => {
+    const seeded = await L.get("SELECT value FROM meta WHERE key = 'demo_seeded'");
+    if (seeded && (await L.get("SELECT value FROM meta WHERE key = 'demo_version'"))?.value === DEMO_VERSION) return null;
 
-    const insRec = 'INSERT INTO recommendations (id, merchant_id, sku, profile_id, size, confidence, engine, created_at) VALUES (?,?,?,?,?,?,?,?)';
-    const insEv = 'INSERT INTO events (merchant_id, type, sku, rec_id, size, value, created_at) VALUES (?,?,?,?,?,?,?)';
-    const insFb = 'INSERT INTO feedback (id, merchant_id, sku, rec_id, size, outcome, followed, created_at) VALUES (?,?,?,?,?,?,?,?)';
+    const rand = rng(20261115);
+    // Deterministic ids: every server instance rebuilds exactly the same demo workspace,
+    // so demo logins and keys work everywhere.
+    const id = prefix => `${prefix}_${Math.floor(rand() * 2 ** 52).toString(36)}${Math.floor(rand() * 2 ** 30).toString(36)}`;
+    const DEMO_PK = { id: 'key_demo_public', key: `pk_live_demo${sha256('forme-demo-public-key').slice(0, 28)}` };
+    const pick = arr => arr[Math.floor(rand() * arr.length)];
+    const gauss = () => (rand() + rand() + rand() + rand() - 2) * 1.2;
+    const mid = 'mer_demo_northline';
+    const DAY = 86400000;
+    const now = Math.floor(Date.now() / DAY) * DAY + DAY - 1;
+    const realNow = Date.now();
+
+    // Generate the whole 60-day story in memory first.
+    const recs = [], events = [], fbs = [];
     const shoppers = Array.from({ length: 900 }, () => {
       const female = rand() < 0.42;
       const height = Math.round(female ? 161 + gauss() * 6 : 174 + gauss() * 7);
@@ -77,10 +70,9 @@ function seedDemo(db, auth, demoAccount) {
     });
     // A couple of products have quirks so the insights page has a story.
     const quirk = { 'NL-OXF-03': 'small', 'NL-BOX-02': 'large' };
-
     // Random numbers are drawn identically on every instance (the day is fixed in UTC);
     // events that would fall later than "right now" are simply not stored.
-    const at = (sql, t, ...args) => { if (t <= realNow) db.run(sql, ...args); };
+    const ev = (t, ...row) => { if (t <= realNow) events.push([mid, ...row, t]); };
     for (let d = 59; d >= 0; d--) {
       const dayStart = Math.floor((now - d * DAY) / DAY) * DAY;
       const weekday = new Date(dayStart).getUTCDay();
@@ -88,22 +80,22 @@ function seedDemo(db, auth, demoAccount) {
       const opens = Math.round((70 + rand() * 40) * growth * (weekday === 0 || weekday === 6 ? 1.35 : 1));
       for (let i = 0; i < opens; i++) {
         const t = dayStart + Math.floor(rand() * DAY);
-        const s = pick(shoppers);
-        const pool = DEMO_PRODUCTS.filter(p => (['Dresses', 'Kurtas'].includes(p.category) ? s.female : p.category === 'Shalwar Kameez' ? !s.female : true));
+        const sh = pick(shoppers);
+        const pool = DEMO_PRODUCTS.filter(p => (['Dresses', 'Kurtas'].includes(p.category) ? sh.female : p.category === 'Shalwar Kameez' ? !sh.female : true));
         const p = pick(pool);
-        at(insEv, t, mid, 'widget_open', p.sku, null, null, null, t);
+        ev(t, 'widget_open', p.sku, null, null, null);
         if (rand() > 0.8) continue;
-        const r = engine.recommend(p, s.body, {});
+        const r = engine.recommend(p, sh.body, {});
         const recId = id('rec');
-        at(insRec, t + 4000, recId, mid, p.sku, s.pid, r.size, r.confidence, r.engine_version, t + 4000);
-        at(insEv, t + 4000, mid, 'recommendation', p.sku, recId, r.size, null, t + 4000);
+        if (t + 4000 <= realNow) recs.push([recId, mid, p.sku, sh.pid, r.size, r.confidence, r.engine_version, t + 4000]);
+        ev(t + 4000, 'recommendation', p.sku, recId, r.size, null);
         if (rand() > 0.36 - (r.confidence - 75) / 400) continue;
         const followed = rand() < 0.86;
         const idx = p.chart.findIndex(c => c.size === r.size);
         const size = followed ? r.size : p.chart[Math.min(p.chart.length - 1, Math.max(0, idx + (rand() < 0.5 ? -1 : 1)))].size;
-        at(insEv, t + 30000, mid, 'add_to_cart', p.sku, recId, size, null, t + 30000);
+        ev(t + 30000, 'add_to_cart', p.sku, recId, size, null);
         if (rand() > 0.63) continue;
-        at(insEv, t + 300000, mid, 'purchase', p.sku, recId, size, p.price, t + 300000);
+        ev(t + 300000, 'purchase', p.sku, recId, size, p.price);
         if (rand() > 0.72 || t + 6 * DAY > now) continue;
         const x = rand();
         let outcome;
@@ -112,13 +104,31 @@ function seedDemo(db, auth, demoAccount) {
         if (quirk[p.sku] === 'small' && outcome === 'kept' && rand() < 0.16) outcome = 'too_small';
         if (quirk[p.sku] === 'large' && outcome === 'kept' && rand() < 0.14) outcome = 'too_large';
         const fbId = id('fb');
-        at(insFb, t + 6 * DAY, fbId, mid, p.sku, recId, size, outcome, followed ? 1 : 0, t + 6 * DAY);
+        if (t + 6 * DAY <= realNow) fbs.push([fbId, mid, p.sku, recId, size, outcome, followed ? 1 : 0, t + 6 * DAY]);
       }
     }
-    db.run("INSERT INTO meta (key, value) VALUES ('demo_seeded', ?)", mid);
-    db.run("INSERT OR REPLACE INTO meta (key, value) VALUES ('demo_version', ?)", DEMO_VERSION);
+
+    await L.tx(async t => {
+      if (seeded) {
+        // Only the demo workspace is replaced; real merchant accounts are untouched.
+        for (const tbl of ['recommendations', 'events', 'feedback', 'products', 'api_keys', 'sessions']) await t.run(`DELETE FROM ${tbl} WHERE merchant_id = ?`, seeded.value);
+        await t.run('DELETE FROM merchants WHERE id = ?', seeded.value);
+        await t.run("DELETE FROM meta WHERE key IN ('demo_seeded', 'demo_version')");
+      }
+      await t.run('INSERT INTO merchants (id, name, email, password_hash, plan, return_cost, widget, currency, created_at) VALUES (?,?,?,?,?,?,?,?,?)',
+        mid, demoAccount.name, demoAccount.email, hashPassword(demoAccount.password), 'enterprise', 450, JSON.stringify({ accent: '#c6ff3d', label: 'Find my size', position: 'inline' }), 'PKR', now - 70 * DAY);
+      await auth.createKey(mid, 'public', 'Storefront widget', DEMO_PK, t);
+      const pt = now - 65 * DAY;
+      await insertMany(t, 'products', ['id', 'merchant_id', 'sku', 'brand', 'name', 'category', 'fit', 'price', 'description', 'image_url', 'color', 'chart', 'created_at', 'updated_at'],
+        DEMO_PRODUCTS.map(p => [`prd_demo_${p.sku}`, mid, p.sku, 'Northline', p.name, p.category, p.fit, p.price, p.description, '', p.color, JSON.stringify(p.chart), pt, pt]));
+      await insertMany(t, 'recommendations', ['id', 'merchant_id', 'sku', 'profile_id', 'size', 'confidence', 'engine', 'created_at'], recs);
+      await insertMany(t, 'events', ['merchant_id', 'type', 'sku', 'rec_id', 'size', 'value', 'created_at'], events);
+      await insertMany(t, 'feedback', ['id', 'merchant_id', 'sku', 'rec_id', 'size', 'outcome', 'followed', 'created_at'], fbs);
+      await t.run("INSERT INTO meta (key, value) VALUES ('demo_seeded', ?)", mid);
+      await t.run("INSERT INTO meta (key, value) VALUES ('demo_version', ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value", DEMO_VERSION);
+    });
+    return mid;
   });
-  return mid;
 }
 
 module.exports = { seedDemo, DEMO_PRODUCTS };

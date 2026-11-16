@@ -14,7 +14,7 @@ const bearer = k => ({ 'content-type': 'application/json', authorization: `Beare
 
 before(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), 'forme-robust-'));
-  app = createApp({ DATA_DIR: dir, LOG_REQUESTS: false, ADMIN_PASSWORD: 'x'.repeat(16) });
+  app = createApp({ DATABASE_URL: process.env.FORME_TEST_DB || '', DATA_DIR: dir, LOG_REQUESTS: false, ADMIN_PASSWORD: 'x'.repeat(16) });
   await new Promise(r => app.server.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${app.server.address().port}`;
   pk = (await (await fetch(base + '/demo-config.json')).json()).publicKey;

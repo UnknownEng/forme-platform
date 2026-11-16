@@ -23,7 +23,12 @@ Forme gives every shopper one portable fit profile and recommends the right size
 - API docs: https://forme-platform.vercel.app/docs
 
 ### Deploying on Vercel
-Import the repo on Vercel and add two environment variables: **`FORME_SECRET`** (any long random string) and **`FORME_ADMIN_PASSWORD`** (12+ characters, unlocks /admin). `FORME_SECRET` signs logins so they work on every serverless instance. Vercel functions have no permanent disk: the demo workspace is rebuilt identically on each instance, but new sign-ups and live events are not kept. Move to Postgres before onboarding real customers.
+Import the repo on Vercel and set these environment variables:
+- **`FORME_SECRET`**: any long random string. Signs logins so they work on every server instance.
+- **`FORME_ADMIN_PASSWORD`**: 12+ characters. Unlocks `/admin`.
+- **`DATABASE_URL`** (or `POSTGRES_URL`): a Postgres connection string. Connecting a Neon/Postgres database from Vercel → Storage sets this automatically. With it, accounts, catalogs and analytics are kept permanently and sign-ups open. Without it the site runs on temporary storage (demo only).
+
+The database tables are created automatically on first start, and the demo workspace is seeded once.
 
 ## Videos
 
@@ -49,7 +54,8 @@ Open http://127.0.0.1:4173. On first start a demo workspace is created with 10 p
 - Use the demo store, then watch the events arrive in the console's **Live activity** feed.
 
 ```sh
-npm test        # 18 engine + API tests against a temporary database
+npm test        # all tests on the built-in SQLite database
+npm run test:pg # the same tests on Postgres (in-process PGlite)
 npm run dev     # restart on file changes
 ```
 
@@ -89,7 +95,7 @@ legacy-mvp/          the original MVP, kept for reference
 ### What a production launch still needs
 This is a complete, working product you can demo and pilot, but before running it for a large platform you should add:
 1. **Hosting**: HTTPS, a domain, `FORME_SECURE_COOKIES=1`, and a CDN for `widget.js`.
-2. **Database**: SQLite is fine for a pilot on one server. For multiple servers, move to Postgres and move rate limits to Redis.
+2. **Database**: Postgres is supported (set `DATABASE_URL`). Rate limits are per server instance; move them to Redis for very high traffic.
 3. **Accounts**: password reset, email verification, team members/roles, SSO for enterprise.
 4. **Billing**: metered usage (recommendations per month) via a payment provider.
 5. **Shopper identity across stores**: the profile token works across every merchant, but browsers isolate storage per site, so true cross-store reuse needs a Forme sign-in (e.g. phone OTP) or partner-level account linking.

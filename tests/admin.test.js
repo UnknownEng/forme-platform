@@ -12,7 +12,7 @@ const call = async (p, opts = {}) => { const r = await fetch(base + p, opts); re
 
 before(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), 'forme-admin-'));
-  app = createApp({ DATA_DIR: dir, LOG_REQUESTS: false, ADMIN_PASSWORD: PASSWORD });
+  app = createApp({ DATABASE_URL: process.env.FORME_TEST_DB || '', DATA_DIR: dir, LOG_REQUESTS: false, ADMIN_PASSWORD: PASSWORD });
   await new Promise(r => app.server.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${app.server.address().port}`;
 });
@@ -70,7 +70,7 @@ test('suspend blocks a merchant, unsuspend restores it, and actions are audited'
 
 test('admin is disabled when no password is configured', async () => {
   const d2 = fs.mkdtempSync(path.join(os.tmpdir(), 'forme-admin-off-'));
-  const off = createApp({ DATA_DIR: d2, LOG_REQUESTS: false, SEED_DEMO: false, ADMIN_PASSWORD: '' });
+  const off = createApp({ DATABASE_URL: process.env.FORME_TEST_DB || '', DATA_DIR: d2, LOG_REQUESTS: false, SEED_DEMO: false, ADMIN_PASSWORD: '' });
   await new Promise(r => off.server.listen(0, '127.0.0.1', r));
   const b = `http://127.0.0.1:${off.server.address().port}`;
   try {

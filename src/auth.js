@@ -29,12 +29,12 @@ function createAuth(db, { sessionTtlMs, secret }) {
   const sign = payload => crypto.createHmac('sha256', secret).update(payload).digest('base64url');
   // The merchant's session_epoch is part of every token. Signing out bumps it, which
   // invalidates every token issued before (on hosts with shared storage).
-  function createSession(merchantId) {
-    const epoch = db.get('SELECT session_epoch FROM merchants WHERE id = ?', merchantId)?.session_epoch ?? 0;
+  async function createSession(merchantId, conn = db) {
+    const epoch = (await conn.get('SELECT session_epoch FROM merchants WHERE id = ?', merchantId))?.session_epoch ?? 0;
     const payload = `${merchantId}.${epoch}.${Date.now() + sessionTtlMs}`;
     return `${payload}.${sign(payload)}`;
   }
-  function sessionMerchant(raw) {
+  async function sessionMerchant(raw) {
     if (!raw || typeof raw !== 'string') return null;
     const i = raw.lastIndexOf('.');
     if (i < 0) return null;
@@ -43,34 +43,34 @@ function createAuth(db, { sessionTtlMs, secret }) {
     if (mac.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(mac), Buffer.from(expected))) return null;
     const [merchantId, epoch, exp] = payload.split('.');
     if (!(Number(exp) > Date.now())) return null;
-    const m = db.get('SELECT * FROM merchants WHERE id = ? AND suspended_at IS NULL', merchantId);
+    const m = await db.get('SELECT * FROM merchants WHERE id = ? AND suspended_at IS NULL', merchantId);
     return m && String(m.session_epoch ?? 0) === epoch ? m : null;
   }
-  function destroySession(raw) {
-    const m = sessionMerchant(raw);
+  async function destroySession(raw) {
+    const m = await sessionMerchant(raw);
     // The public demo workspace is shared by every visitor; one person signing out
     // must not sign everyone else out.
-    const demoId = db.get("SELECT value FROM meta WHERE key = 'demo_seeded'")?.value;
-    if (m && m.id !== demoId) db.run('UPDATE merchants SET session_epoch = session_epoch + 1 WHERE id = ?', m.id);
+    const demoId = (await db.get("SELECT value FROM meta WHERE key = 'demo_seeded'"))?.value;
+    if (m && m.id !== demoId) await db.run('UPDATE merchants SET session_epoch = session_epoch + 1 WHERE id = ?', m.id);
   }
 
   // Public keys (pk_) are meant to sit in browser code, like a Stripe publishable
   // key, so we keep them readable for the install snippet. Secret keys (sk_) are
   // shown once and stored only as a hash.
-  function createKey(merchantId, kind, label, fixed = null) {
+  async function createKey(merchantId, kind, label, fixed = null, conn = db) {
     const raw = fixed?.key || token(kind === 'public' ? 'pk_live' : 'sk_live', 24);
     const row = { id: fixed?.id || id('key'), prefix: raw.slice(0, 12), created_at: Date.now() };
-    db.run('INSERT INTO api_keys (id, merchant_id, kind, label, prefix, key_hash, public_token, created_at) VALUES (?,?,?,?,?,?,?,?)',
+    await conn.run('INSERT INTO api_keys (id, merchant_id, kind, label, prefix, key_hash, public_token, created_at) VALUES (?,?,?,?,?,?,?,?)',
       row.id, merchantId, kind, label, row.prefix, sha256(raw), kind === 'public' ? raw : null, row.created_at);
     return { ...row, kind, label, key: raw };
   }
-  function resolveKey(raw) {
+  async function resolveKey(raw) {
     if (!raw || !/^(pk|sk)_live_[A-Za-z0-9_-]{20,}$/.test(raw)) return null;
-    const row = db.get(`SELECT k.id AS key_id, k.kind, k.last_used_at, m.* FROM api_keys k JOIN merchants m ON m.id = k.merchant_id
+    const row = await db.get(`SELECT k.id AS key_id, k.kind, k.last_used_at, m.* FROM api_keys k JOIN merchants m ON m.id = k.merchant_id
       WHERE k.key_hash = ? AND k.revoked_at IS NULL AND m.suspended_at IS NULL`, sha256(raw));
     if (!row) return null;
     // Avoid a write on every call: refresh last_used at most once a minute.
-    if (!row.last_used_at || Date.now() - row.last_used_at > 60_000) db.run('UPDATE api_keys SET last_used_at = ? WHERE id = ?', Date.now(), row.key_id);
+    if (!row.last_used_at || Date.now() - row.last_used_at > 60_000) await db.run('UPDATE api_keys SET last_used_at = ? WHERE id = ?', Date.now(), row.key_id);
     return row;
   }
 

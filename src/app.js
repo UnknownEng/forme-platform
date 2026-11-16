@@ -11,7 +11,16 @@ const PAGES = { '/': '/index.html', '/console': '/console.html', '/demo': '/demo
 
 function createApp(overrides = {}) {
   const cfg = { ...config, ...overrides };
-  const db = open(cfg.DATA_DIR);
+  // The database opens asynchronously (Postgres needs a network connection). Routes get
+  // a stable handle that forwards to it; every request waits for `ready` first.
+  let real = null;
+  const db = {
+    get: (...a) => real.get(...a), all: (...a) => real.all(...a), run: (...a) => real.run(...a),
+    tx: fn => real.tx(fn), withLock: (n, fn) => real.withLock(n, fn),
+    get dialect() { return real?.dialect; }, get persistent() { return real?.persistent; }, get location() { return real?.location; },
+    close: async () => { if (real) await real.close(); },
+  };
+  require('node:fs').mkdirSync(cfg.DATA_DIR, { recursive: true });
   // Local runs without FORME_ADMIN_PASSWORD get a generated password, saved once in the data folder.
   if (cfg.ADMIN_PASSWORD === null) {
     const file = require('node:path').join(cfg.DATA_DIR, 'admin-password.txt');
@@ -21,7 +30,11 @@ function createApp(overrides = {}) {
   }
   const auth = createAuth(db, { sessionTtlMs: cfg.SESSION_TTL_MS, secret: cfg.SESSION_SECRET });
   const services = createServices(db);
-  if (cfg.SEED_DEMO) seedDemo(db, auth, cfg.DEMO_ACCOUNT);
+  const ready = (async () => {
+    real = await open(cfg);
+    if (cfg.SEED_DEMO) await seedDemo(db, auth, cfg.DEMO_ACCOUNT);
+  })();
+  ready.catch(e => console.error('[forme] database start-up failed:', e.message));
 
   const limits = {
     auth: rateLimiter({ windowMs: 60_000, max: 12 }),
@@ -38,15 +51,19 @@ function createApp(overrides = {}) {
 
   const spec = openapi(cfg.ENGINE_VERSION);
   router.get('/openapi.json', () => spec);
-  router.get('/demo-config.json', () => {
-    const mid = db.get("SELECT value FROM meta WHERE key = 'demo_seeded'")?.value;
-    const key = mid && db.get("SELECT public_token FROM api_keys WHERE merchant_id = ? AND kind = 'public' AND revoked_at IS NULL ORDER BY created_at LIMIT 1", mid);
+  router.get('/demo-config.json', async () => {
+    const mid = (await db.get("SELECT value FROM meta WHERE key = 'demo_seeded'"))?.value;
+    const key = mid && await db.get("SELECT public_token FROM api_keys WHERE merchant_id = ? AND kind = 'public' AND revoked_at IS NULL ORDER BY created_at LIMIT 1", mid);
     if (!key) return { status: 404, body: { error: { code: 'no_demo', message: 'Demo workspace is not installed.' } } };
-    return { publicKey: key.public_token, products: services.products.list(mid).map(p => ({ sku: p.sku, name: p.name, brand: p.brand, category: p.category, fit: p.fit, price: p.price, description: p.description, color: p.color, sizes: p.chart.map(r => r.size) })) };
+    return { publicKey: key.public_token, products: (await services.products.list(mid)).map(p => ({ sku: p.sku, name: p.name, brand: p.brand, category: p.category, fit: p.fit, price: p.price, description: p.description, color: p.color, sizes: p.chart.map(r => r.size) })) };
   });
 
   const handler = async (req, res) => {
     const started = Date.now();
+    try { await ready; } catch (e) {
+      res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8', 'Retry-After': '10' });
+      return res.end(JSON.stringify({ error: { code: 'database_unavailable', message: 'The database is not reachable right now. Please try again shortly.' } }));
+    }
     const url = new URL(req.url, 'http://localhost');
     const isApi = url.pathname.startsWith('/v1/') || url.pathname.startsWith('/api/');
     // Behind a trusted proxy, use the address the proxy itself saw. Clients can put
@@ -101,8 +118,8 @@ function createApp(overrides = {}) {
   };
 
   const server = http.createServer(handler);
-  server.on('close', () => db.close());
-  return { server, handler, db, auth, services, config: cfg };
+  server.on('close', () => { db.close().catch(() => {}); });
+  return { server, handler, ready, db, auth, services, config: cfg };
 }
 
 module.exports = { createApp };
