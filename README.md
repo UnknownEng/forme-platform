@@ -97,4 +97,3 @@ This is a complete, working product you can demo and pilot, but before running i
 7. **Legal**: privacy policy, DPA, consent text in the widget, and compliance review for your markets (e.g. Pakistan's data protection rules and PECA, GDPR for EU shoppers).
 8. **Ops**: backups, monitoring/alerting, error tracking, uptime SLA.
 
-See [BUSINESS.md](BUSINESS.md) for the business analysis and go-to-market notes.

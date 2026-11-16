@@ -5,3 +5,8 @@ data/*.db-*
 video/out/
 video/frames/
 data/admin-password.txt
+
+# Private: business reports and local tool settings stay on this computer
+BUSINESS.md
+docs/
+.claude/
