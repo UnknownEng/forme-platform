@@ -3,6 +3,13 @@ const engine = require('./engine');
 const { id } = require('./auth');
 
 const DAY = 24 * 60 * 60 * 1000;
+// Days are counted in Pakistan time (UTC+5, no daylight saving) whatever the server's
+// own timezone is, so "today" on a Vercel server in UTC matches the merchant's day.
+const TZ_OFFSET = 5 * 60 * 60 * 1000;
+const dayStart = t => Math.floor((t + TZ_OFFSET) / DAY) * DAY - TZ_OFFSET;
+const dayKey = t => new Date(t + TZ_OFFSET).toISOString().slice(0, 10);
+// Below this many feedback outcomes per group, a "returns avoided" figure is noise.
+const MIN_FEEDBACK = 20;
 
 function createServices(db) {
   const toProduct = r => r && ({
@@ -72,7 +79,9 @@ function createServices(db) {
 
   function analytics(merchant, days = 30) {
     const mid = merchant.id;
-    const since = Date.now() - days * DAY;
+    // Calendar-aligned window: today plus the previous days-1 full days, so the
+    // headline numbers and the daily chart always cover the same events.
+    const since = dayStart(Date.now()) - (days - 1) * DAY;
     const prevSince = since - days * DAY;
     const count = (type, from, to = Date.now()) => db.get('SELECT COUNT(*) AS n FROM events WHERE merchant_id = ? AND type = ? AND created_at >= ? AND created_at < ?', mid, type, from, to).n;
     const period = (from, to) => {
@@ -89,21 +98,26 @@ function createServices(db) {
     const fb = db.all(`SELECT followed, outcome, COUNT(*) AS n FROM feedback WHERE merchant_id = ? AND created_at >= ? GROUP BY followed, outcome`, mid, since);
     const bucket = f => { const rows = fb.filter(r => r.followed === f); const total = rows.reduce((s, r) => s + r.n, 0); const size = rows.filter(r => r.outcome === 'too_small' || r.outcome === 'too_large').reduce((s, r) => s + r.n, 0); return { total, size_returns: size, rate: total ? size / total : null }; };
     const followed = bucket(1), ignored = bucket(0);
-    const lift = followed.rate != null && ignored.rate != null ? Math.max(0, ignored.rate - followed.rate) : null;
-    const purchasesWithRec = db.get(`SELECT COUNT(*) AS n FROM events WHERE merchant_id = ? AND type = 'purchase' AND rec_id IS NOT NULL AND created_at >= ?`, mid, since).n;
-    const returnsAvoided = lift != null ? Math.round(purchasesWithRec * lift) : 0;
+    const enough = followed.total >= MIN_FEEDBACK && ignored.total >= MIN_FEEDBACK;
+    const lift = enough ? Math.max(0, ignored.rate - followed.rate) : null;
+    // Only purchases where the shopper actually took Forme's size count towards savings.
+    const followedPurchases = db.get(`SELECT COUNT(*) AS n FROM events e JOIN recommendations r ON r.id = e.rec_id
+      WHERE e.merchant_id = ? AND e.type = 'purchase' AND e.size = r.size AND e.created_at >= ?`, mid, since).n;
+    const returnsAvoided = lift != null ? Math.round(followedPurchases * lift) : 0;
 
     const series = [];
-    const dayStart = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
-    const rows = db.all(`SELECT type, created_at FROM events WHERE merchant_id = ? AND created_at >= ? AND type IN ('widget_open','recommendation','add_to_cart')`, mid, dayStart(since));
+    const rows = db.all(`SELECT type, created_at, rec_id FROM events WHERE merchant_id = ? AND created_at >= ? AND type IN ('widget_open','recommendation','add_to_cart')`, mid, since);
     const byDay = new Map();
-    for (let t = dayStart(since); t <= Date.now(); t += DAY) byDay.set(dayStart(t), { date: new Date(dayStart(t)).toISOString().slice(0, 10), opens: 0, recs: 0, carts: 0 });
-    for (const r of rows) { const b = byDay.get(dayStart(r.created_at)); if (!b) continue; if (r.type === 'widget_open') b.opens++; else if (r.type === 'recommendation') b.recs++; else b.carts++; }
+    for (let i = 0; i < days; i++) { const t = since + i * DAY; byDay.set(t, { date: dayKey(t), opens: 0, recs: 0, carts: 0 }); }
+    for (const r of rows) {
+      const b = byDay.get(dayStart(r.created_at)); if (!b) continue;
+      if (r.type === 'widget_open') b.opens++; else if (r.type === 'recommendation') b.recs++; else if (r.rec_id) b.carts++;
+    }
     series.push(...byDay.values());
 
     const sizeMix = db.all(`SELECT size, COUNT(*) AS n FROM recommendations WHERE merchant_id = ? AND created_at >= ? GROUP BY size ORDER BY n DESC LIMIT 12`, mid, since);
     const top = db.all(`SELECT r.sku, p.name, p.brand, COUNT(*) AS recs, ROUND(AVG(r.confidence)) AS confidence FROM recommendations r
-      LEFT JOIN products p ON p.merchant_id = r.merchant_id AND p.sku = r.sku WHERE r.merchant_id = ? AND r.created_at >= ? GROUP BY r.sku ORDER BY recs DESC LIMIT 8`, mid, since);
+      LEFT JOIN products p ON p.merchant_id = r.merchant_id AND p.sku = r.sku WHERE r.merchant_id = ? AND r.created_at >= ? GROUP BY r.sku, p.name, p.brand ORDER BY recs DESC LIMIT 8`, mid, since);
     const profiles = db.get(`SELECT COUNT(DISTINCT profile_id) AS n FROM recommendations WHERE merchant_id = ? AND created_at >= ? AND profile_id IS NOT NULL`, mid, since).n;
     const avgConf = db.get(`SELECT ROUND(AVG(confidence)) AS c FROM recommendations WHERE merchant_id = ? AND created_at >= ?`, mid, since).c;
 
@@ -119,6 +133,7 @@ function createServices(db) {
       },
       returns: {
         followed_rate: followed.rate, ignored_rate: ignored.rate, followed_samples: followed.total, ignored_samples: ignored.total,
+        enough_feedback: enough, min_feedback: MIN_FEEDBACK,
         returns_avoided: returnsAvoided, estimated_savings: returnsAvoided * merchant.return_cost, return_cost: merchant.return_cost, currency: merchant.currency,
       },
       series, size_mix: sizeMix, top_products: top,
@@ -132,7 +147,8 @@ function createServices(db) {
         SUM(CASE WHEN f.outcome='too_large' THEN 1 ELSE 0 END) AS too_large,
         SUM(CASE WHEN f.outcome='returned_other' THEN 1 ELSE 0 END) AS returned_other
       FROM products p LEFT JOIN feedback f ON f.merchant_id = p.merchant_id AND f.sku = p.sku
-      WHERE p.merchant_id = ? GROUP BY p.sku ORDER BY (too_small + too_large) DESC, p.name`, merchantId);
+      WHERE p.merchant_id = ? GROUP BY p.sku, p.name, p.brand, p.category
+      ORDER BY SUM(CASE WHEN f.outcome IN ('too_small','too_large') THEN 1 ELSE 0 END) DESC, p.name`, merchantId);
     return rows.map(r => {
       const cal = engine.calibration(r);
       const total = r.kept + r.too_small + r.too_large + r.returned_other;

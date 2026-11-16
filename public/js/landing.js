@@ -149,7 +149,7 @@ async function liveDemo() {
     $$('#prod-pick button').forEach(x => x.classList.toggle('on', x === b));
     current = products.find(p => p.sku === b.dataset.sku);
     const want = ['Kurtas', 'Dresses'].includes(current.category) ? 'female' : current.category === 'Shalwar Kameez' ? 'male' : state.sex;
-    if (want !== state.sex) { state.sex = want; $('#sex button').forEach(x => x.classList.toggle('on', x.dataset.v === want)); }
+    if (want !== state.sex) { state.sex = want; $$('#sex button').forEach(x => x.classList.toggle('on', x.dataset.v === want)); }
     setArt(); run();
   });
   run();

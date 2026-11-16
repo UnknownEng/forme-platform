@@ -32,7 +32,7 @@ test('exact measurements raise confidence over estimates', () => {
 test('returns fit notes, a label and the engine version', () => {
   const r = engine.recommend(tee, { height: 178, chest: 96, waist: 82, shoulders: 45 });
   assert.ok(r.fit_notes.some(n => n.area === 'chest'));
-  assert.match(r.label, /match|confidence/i);
+  assert.match(r.label, /fit|sure/i);
   assert.ok(r.confidence >= 30 && r.confidence <= 98);
   assert.equal(typeof r.engine_version, 'string');
 });

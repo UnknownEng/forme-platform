@@ -54,10 +54,11 @@ function register(router, { db, auth, services, config, limits }) {
   router.get('/api/admin/overview', admin, () => {
     const now = Date.now();
     const n = (sql, ...p) => db.get(sql, ...p).n;
-    const dayStart = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
-    const since = dayStart(now - 29 * DAY);
+    const TZ = 5 * 3600 * 1000; // Pakistan time
+    const dayStart = t => Math.floor((t + TZ) / DAY) * DAY - TZ;
+    const since = dayStart(now) - 29 * DAY;
     const byDay = new Map();
-    for (let t = since; t <= now; t += DAY) byDay.set(dayStart(t), { date: new Date(dayStart(t)).toISOString().slice(0, 10), recs: 0, merchants: 0 });
+    for (let i = 0; i < 30; i++) { const t = since + i * DAY; byDay.set(t, { date: new Date(t + TZ).toISOString().slice(0, 10), recs: 0, merchants: 0 }); }
     for (const r of db.all('SELECT created_at FROM recommendations WHERE created_at >= ?', since)) { const b = byDay.get(dayStart(r.created_at)); if (b) b.recs++; }
     for (const r of db.all('SELECT created_at FROM merchants WHERE created_at >= ?', since)) { const b = byDay.get(dayStart(r.created_at)); if (b) b.merchants++; }
     let dbBytes = 0;

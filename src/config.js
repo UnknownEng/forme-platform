@@ -28,6 +28,9 @@ module.exports = {
   SEED_DEMO: process.env.FORME_SEED !== '0',
   SESSION_TTL_MS: 7 * 24 * 60 * 60 * 1000,
   ENGINE_VERSION: '2.1.0',
+  // On Vercel each instance has its own temporary database, so new accounts would vanish.
+  // Keep sign-ups closed there until a shared database is configured.
+  SIGNUPS_OPEN: process.env.FORME_SIGNUPS === '1' || (process.env.FORME_SIGNUPS !== '0' && !ON_VERCEL),
   SECURE_COOKIES: process.env.FORME_SECURE_COOKIES === '1' || ON_VERCEL,
   DEMO_ACCOUNT: { email: 'demo@forme.dev', password: 'forme-demo-2026', name: 'Northline Supply (demo)' },
 };

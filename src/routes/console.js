@@ -31,7 +31,10 @@ function register(router, { db, auth, services, config, limits }) {
     if (ctx.req.headers['x-forme-request'] !== '1') fail(403, 'csrf', 'Missing X-Forme-Request header.');
   };
 
+  router.get('/api/auth/config', () => ({ signups_open: !!config.SIGNUPS_OPEN }));
+
   router.post('/api/auth/signup', authLimit, async ctx => {
+    if (!config.SIGNUPS_OPEN) fail(503, 'signups_closed', 'New accounts open after the pilot phase. Explore the demo workspace, or apply for a free pilot.');
     const b = await readJson(ctx.req);
     if (!validate.str(b.name, 80)) fail(400, 'invalid_name', 'Company name is required.');
     if (!validate.email(b.email)) fail(400, 'invalid_email', 'Enter a valid work email.');

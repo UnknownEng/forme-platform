@@ -31,7 +31,7 @@ const DEMO_PRODUCTS = [
 function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
 // Bump when the demo catalog or story changes; older demo workspaces are rebuilt.
-const DEMO_VERSION = '4-pk';
+const DEMO_VERSION = '5-pk';
 
 function seedDemo(db, auth, demoAccount) {
   const seeded = db.get("SELECT value FROM meta WHERE key = 'demo_seeded'");
@@ -52,8 +52,9 @@ function seedDemo(db, auth, demoAccount) {
   const pick = arr => arr[Math.floor(rand() * arr.length)];
   const gauss = () => (rand() + rand() + rand() + rand() - 2) * 1.2;
   const mid = 'mer_demo_northline';
-  const now = Date.now();
   const DAY = 86400000;
+  const now = Math.floor(Date.now() / DAY) * DAY + DAY - 1;
+  const realNow = Date.now();
 
   db.tx(() => {
     db.run('INSERT INTO merchants (id, name, email, password_hash, plan, return_cost, widget, currency, created_at) VALUES (?,?,?,?,?,?,?,?,?)',
@@ -72,35 +73,37 @@ function seedDemo(db, auth, demoAccount) {
       const female = rand() < 0.42;
       const height = Math.round(female ? 161 + gauss() * 6 : 174 + gauss() * 7);
       const weight = Math.round((female ? 58 : 72) + gauss() * 9 + (height - (female ? 161 : 174)) * 0.6);
-      return { pid: id('prf'), body: { height, weight, fit: pick(['Slim', 'Regular', 'Regular', 'Relaxed']), build: pick(['Slim', 'Average', 'Average', 'Broad']) }, female };
+      return { pid: id('prf'), body: { height, weight, sex: female ? 'female' : 'male', fit: pick(['Slim', 'Regular', 'Regular', 'Relaxed']), build: pick(['Slim', 'Average', 'Average', 'Broad']) }, female };
     });
     // A couple of products have quirks so the insights page has a story.
     const quirk = { 'NL-OXF-03': 'small', 'NL-BOX-02': 'large' };
 
+    // Random numbers are drawn identically on every instance (the day is fixed in UTC);
+    // events that would fall later than "right now" are simply not stored.
+    const at = (sql, t, ...args) => { if (t <= realNow) db.run(sql, ...args); };
     for (let d = 59; d >= 0; d--) {
-      const dayStart = new Date(now - d * DAY); dayStart.setHours(0, 0, 0, 0);
-      const weekday = dayStart.getDay();
+      const dayStart = Math.floor((now - d * DAY) / DAY) * DAY;
+      const weekday = new Date(dayStart).getUTCDay();
       const growth = 1 + (59 - d) * 0.012;
       const opens = Math.round((70 + rand() * 40) * growth * (weekday === 0 || weekday === 6 ? 1.35 : 1));
       for (let i = 0; i < opens; i++) {
-        const t = dayStart.getTime() + Math.floor(rand() * DAY);
-        if (t > now) continue;
+        const t = dayStart + Math.floor(rand() * DAY);
         const s = pick(shoppers);
         const pool = DEMO_PRODUCTS.filter(p => (['Dresses', 'Kurtas'].includes(p.category) ? s.female : p.category === 'Shalwar Kameez' ? !s.female : true));
         const p = pick(pool);
-        db.run(insEv, mid, 'widget_open', p.sku, null, null, null, t);
+        at(insEv, t, mid, 'widget_open', p.sku, null, null, null, t);
         if (rand() > 0.8) continue;
         const r = engine.recommend(p, s.body, {});
         const recId = id('rec');
-        db.run(insRec, recId, mid, p.sku, s.pid, r.size, r.confidence, r.engine_version, t + 4000);
-        db.run(insEv, mid, 'recommendation', p.sku, recId, r.size, null, t + 4000);
+        at(insRec, t + 4000, recId, mid, p.sku, s.pid, r.size, r.confidence, r.engine_version, t + 4000);
+        at(insEv, t + 4000, mid, 'recommendation', p.sku, recId, r.size, null, t + 4000);
         if (rand() > 0.36 - (r.confidence - 75) / 400) continue;
         const followed = rand() < 0.86;
         const idx = p.chart.findIndex(c => c.size === r.size);
         const size = followed ? r.size : p.chart[Math.min(p.chart.length - 1, Math.max(0, idx + (rand() < 0.5 ? -1 : 1)))].size;
-        db.run(insEv, mid, 'add_to_cart', p.sku, recId, size, null, t + 30000);
+        at(insEv, t + 30000, mid, 'add_to_cart', p.sku, recId, size, null, t + 30000);
         if (rand() > 0.63) continue;
-        db.run(insEv, mid, 'purchase', p.sku, recId, size, p.price, t + 300000);
+        at(insEv, t + 300000, mid, 'purchase', p.sku, recId, size, p.price, t + 300000);
         if (rand() > 0.72 || t + 6 * DAY > now) continue;
         const x = rand();
         let outcome;
@@ -108,7 +111,8 @@ function seedDemo(db, auth, demoAccount) {
         else outcome = x < 0.69 ? 'kept' : x < 0.82 ? 'too_small' : x < 0.93 ? 'too_large' : 'returned_other';
         if (quirk[p.sku] === 'small' && outcome === 'kept' && rand() < 0.16) outcome = 'too_small';
         if (quirk[p.sku] === 'large' && outcome === 'kept' && rand() < 0.14) outcome = 'too_large';
-        db.run(insFb, id('fb'), mid, p.sku, recId, size, outcome, followed ? 1 : 0, t + 6 * DAY);
+        const fbId = id('fb');
+        at(insFb, t + 6 * DAY, fbId, mid, p.sku, recId, size, outcome, followed ? 1 : 0, t + 6 * DAY);
       }
     }
     db.run("INSERT INTO meta (key, value) VALUES ('demo_seeded', ?)", mid);

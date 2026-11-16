@@ -73,7 +73,7 @@ function createApp(overrides = {}) {
     const ctx = { req, res, url, ip, auth, params: {} };
     try {
       const m = router.match(req.method, url.pathname);
-      if (m?.methodNotAllowed) throw new HttpError(405, 'method_not_allowed', `${req.method} is not supported here.`);
+      if (m?.methodNotAllowed) { res.extraHeaders.Allow = m.allow; throw new HttpError(405, 'method_not_allowed', `${req.method} is not supported here.`); }
       if (m) {
         ctx.params = m.params;
         let out;
@@ -84,8 +84,11 @@ function createApp(overrides = {}) {
         throw new HttpError(404, 'not_found', 'No such endpoint. See /docs.');
       } else if ((req.method === 'GET' || req.method === 'HEAD') && serveStatic(cfg.PUBLIC_DIR, req, res, url.pathname, PAGES)) {
         // served
-      } else if (req.method !== 'GET' && req.method !== 'HEAD') {
+      } else if (req.method !== 'GET' && req.method !== 'HEAD' && serveStatic.exists?.(cfg.PUBLIC_DIR, url.pathname, PAGES)) {
+        res.extraHeaders.Allow = 'GET, HEAD';
         throw new HttpError(405, 'method_not_allowed', 'Method not allowed.');
+      } else if (req.method !== 'GET' && req.method !== 'HEAD') {
+        throw new HttpError(404, 'not_found', 'Not found.');
       } else {
         serveStatic(cfg.PUBLIC_DIR, req, res, '/404.html', {}, 404) || send(res, 404, 'Not found');
       }

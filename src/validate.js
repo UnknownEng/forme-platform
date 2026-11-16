@@ -3,7 +3,13 @@
 const { CATEGORIES, FITS, BUILDS, SEXES, DIMS, GROUPS, groupFor } = require('./engine');
 
 const str = (v, max) => typeof v === 'string' && v.trim().length > 0 && v.trim().length <= max;
-const num = (v, lo, hi) => { const n = Number(v); return Number.isFinite(n) && n >= lo && n <= hi; };
+// Only real numbers or numeric strings count: Number(true) === 1 and Number([5]) === 5
+// must not sneak through.
+const num = (v, lo, hi) => {
+  if (typeof v !== 'number' && !(typeof v === 'string' && v.trim() !== '')) return false;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= lo && n <= hi;
+};
 
 function product(input, { partialSku = false } = {}) {
   if (!input || typeof input !== 'object') return { error: 'Body must be a JSON object.' };
@@ -51,6 +57,9 @@ function chart(rows, category) {
   for (const d of required) {
     if (!clean.every(r => Number.isFinite(r[d]))) return { error: `Every size needs a ${d} measurement for ${category}.` };
   }
+  // Store sizes smallest to largest, whatever order the brand sent them in, so
+  // "size up / size down" advice and out-of-range checks are always right.
+  clean.sort((a, b) => a[required[0]] - b[required[0]]);
   return { value: clean };
 }
 

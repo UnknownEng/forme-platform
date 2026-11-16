@@ -20,6 +20,7 @@ const ago = t => { const s = Math.max(1, Math.round((Date.now() - t) / 1000)); r
 
 /* =================== Boot & routing =================== */
 async function boot() {
+  S.signupsOpen = await api('/api/auth/config').then(c => c.signups_open).catch(() => true);
   try { S.merchant = (await api('/api/auth/me')).merchant; shell(); }
   catch { authScreen(location.hash === '#signup' ? 'signup' : 'login'); }
 }
@@ -42,8 +43,9 @@ function authScreen(mode) {
     <section class="auth-form"><div class="auth-card glass">
       <div class="seg" id="auth-tabs"><button data-m="login" class="${mode === 'login' ? 'on' : ''}">Sign in</button><button data-m="signup" class="${mode === 'signup' ? 'on' : ''}">Create account</button></div>
       <h2>${mode === 'login' ? 'Welcome back' : 'Start your workspace'}</h2>
-      <p class="muted" style="margin:0;font-size:14px">${mode === 'login' ? 'Sign in to your Forme console.' : 'Free while you pilot. No card needed.'}</p>
-      <form id="auth-form" novalidate>
+      <p class="muted" style="margin:0;font-size:14px">${mode === 'login' ? 'Sign in to your Forme console.' : 'Free while you pilot. Any email works.'}</p>
+      ${mode === 'signup' && S.signupsOpen === false ? '<div class="notice" style="margin-top:18px"><b>Pilot phase.</b>&nbsp;New accounts open soon. Meanwhile, explore the full demo workspace below.</div><div class="demo-login"><span>Open the <b>demo workspace</b> with 60 days of sample data.</span><button class="btn small" id="demo-btn" type="button">Open demo</button></div>' : ''}
+      <form id="auth-form" novalidate ${mode === 'signup' && S.signupsOpen === false ? 'hidden' : ''}>
         ${mode === 'signup' ? '<div class="field"><label for="a-name">Company name</label><input class="input" id="a-name" name="name" autocomplete="organization" required></div>' : ''}
         <div class="field"><label for="a-email">Work email</label><input class="input" id="a-email" name="email" type="email" autocomplete="email" required></div>
         <div class="field"><label for="a-pass">Password</label><input class="input" id="a-pass" name="password" type="password" autocomplete="${mode === 'login' ? 'current-password' : 'new-password'}" minlength="10" required>${mode === 'signup' ? '<span class="helper">At least 10 characters.</span>' : ''}</div>
@@ -68,8 +70,11 @@ function authScreen(mode) {
     demo.disabled = true;
     try { const d = await fetch('/demo-config.json'); if (!d.ok) throw new Error('Demo workspace is not installed.'); } catch (e) { $('#auth-err').textContent = e.message; demo.disabled = false; return; }
     // Demo credentials are public sample values, created by the seed script.
-    $('#a-email').value = 'demo@forme.dev'; $('#a-pass').value = 'forme-demo-2026';
-    $('#auth-form').requestSubmit();
+    try {
+      S.merchant = (await api('/api/auth/login', { method: 'POST', body: { email: 'demo@forme.dev', password: 'forme-demo-2026' } })).merchant;
+      history.replaceState(null, '', '#overview'); S.view = 'overview'; shell();
+      toast(`Signed in to ${S.merchant.name}`);
+    } catch (err) { $('#auth-err').textContent = err.message; demo.disabled = false; }
   };
 }
 
@@ -85,7 +90,7 @@ function shell() {
       <div class="side-label">WORKSPACE</div>
       ${nav('')}
       <div class="side-spacer"></div>
-      <div class="side-card"><b>See it live</b>Open the demo store, pick a size, and watch events arrive here. <a href="/demo" target="_blank" rel="noopener">Open store ↗</a></div>
+      <div class="side-card" id="side-card">${m.email === 'demo@forme.dev' ? '<b>See it live</b>Open the demo store, pick a size, and watch events arrive here. <a href="/demo" target="_blank" rel="noopener">Open store ↗</a>' : '<b>Get started</b><a href="#catalog">1. Add a product</a><br><a href="#integration">2. Install on your store</a><br>3. See your first shopper here'}</div>
       <div class="me"><div class="avatar">${esc(m.name[0] || 'F').toUpperCase()}</div><div><b>${esc(m.name)}</b><small>${esc(m.email)} · ${esc(m.plan)}</small></div><button class="icon-btn" id="logout" title="Sign out" aria-label="Sign out">⏻</button></div>
     </aside>
     <div class="main">
@@ -105,23 +110,29 @@ function navPaint() {
   const p = $('#period'); if (p) p.style.visibility = S.view === 'overview' ? 'visible' : 'hidden';
   const t = $('#title'); if (t) t.textContent = VIEWS.find(x => x[0] === S.view)[2];
 }
+let renderSeq = 0;
+const stale = my => my !== renderSeq;
 function render() {
   stopPoll();
+  const my = ++renderSeq;
   const view = $('#view');
   view.className = 'view'; void view.offsetWidth; view.className = 'view';
-  ({ overview, catalog, insights, integration, settings })[S.view]();
+  Promise.resolve(({ overview, catalog, insights, integration, settings })[S.view](my)).catch(e => {
+    if (stale(my)) return;
+    if (e.status === 401) { S.merchant = null; toast('Your session ended. Please sign in again.', 'err'); return authScreen('login'); }
+    view.innerHTML = `<div class="empty"><b>Could not load this page</b>${esc(e.message)}</div>`;
+  });
 }
 function stopPoll() { clearInterval(S.poll); S.poll = null; }
 
 const chg = c => (c == null ? '<span class="chg flat">new</span>' : `<span class="chg ${c > 0.5 ? 'up' : c < -0.5 ? 'down' : 'flat'}">${c > 0 ? '▲' : c < 0 ? '▼' : '•'} ${Math.abs(c).toFixed(1)}%</span>`);
 
 /* =================== Overview =================== */
-async function overview() {
+async function overview(my) {
   const view = $('#view');
   view.innerHTML = `<div class="grid kpis">${'<div class="skeleton"></div>'.repeat(6)}</div>`;
-  let a;
-  try { a = await api(`/api/analytics?days=${S.days}`); } catch (e) { view.innerHTML = `<div class="empty"><b>Could not load analytics</b>${esc(e.message)}</div>`; return; }
-  if (S.view !== 'overview') return;
+  const a = await api(`/api/analytics?days=${S.days}`);
+  if (stale(my)) return;
   const k = a.kpis, r = a.returns, cur = S.merchant.currency;
   const seriesOf = key => a.series.map(d => d[key]);
   const isDemo = S.merchant.email === 'demo@forme.dev';
@@ -167,6 +178,8 @@ async function overview() {
   }));
   S.lastEvent = 0;
   await feed(true);
+  if (stale(my)) return;
+  stopPoll();
   S.poll = setInterval(() => feed(false), 4000);
 }
 const ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
@@ -225,14 +238,17 @@ async function catalog() {
   load().catch(e => toast(e.message, 'err'));
 }
 
+let layerTimer;
 function closeLayer() {
+  clearTimeout(layerTimer);
   const d = $('.drawer', layer);
-  if (d) { d.classList.add('closing'); setTimeout(() => { layer.innerHTML = ''; }, 280); } else layer.innerHTML = '';
+  if (d) { d.classList.add('closing'); layerTimer = setTimeout(() => { layer.innerHTML = ''; }, 280); } else layer.innerHTML = '';
   document.removeEventListener('keydown', escClose);
 }
 function escClose(e) { if (e.key === 'Escape') closeLayer(); }
 
 function editor(p, onSaved) {
+  clearTimeout(layerTimer);
   const isNew = !p;
   const cats = S.categories.length ? S.categories : ['T-shirts', 'Shirts', 'Knitwear', 'Hoodies', 'Jackets', 'Jeans', 'Trousers', 'Shorts', 'Dresses'];
   const fits = S.fits.length ? S.fits : ['Slim', 'Regular', 'Relaxed'];
@@ -248,17 +264,17 @@ function editor(p, onSaved) {
     <div class="drawer-head"><h2 id="ed-title">${isNew ? 'Add product' : `Edit ${esc(p.name)}`}</h2><button class="icon-btn" id="ed-close" aria-label="Close">✕</button></div>
     <form class="drawer-body" id="ed-form" novalidate>
       <div class="form-grid">
-        <div class="form-2"><div class="field"><label for="f-sku">SKU</label><input class="input mono" id="f-sku" name="sku" value="${esc(p?.sku || '')}" ${isNew ? '' : 'readonly'} placeholder="e.g. TEE-001" required></div>
+        <div class="form-2"><div class="field"><label for="f-sku">Product code</label><input class="input mono" id="f-sku" name="sku" value="${esc(p?.sku || '')}" ${isNew ? '' : 'readonly'} placeholder="e.g. LAWN-01" required><span class="helper">Any short code (your SKU). Filled in from the name if you leave it.</span></div>
           <div class="field"><label for="f-brand">Brand</label><input class="input" id="f-brand" name="brand" value="${esc(p?.brand || S.merchant.name.replace(/\s*\(demo\)$/, ''))}" required></div></div>
         <div class="field"><label for="f-name">Product name</label><input class="input" id="f-name" name="name" value="${esc(p?.name || '')}" placeholder="e.g. Everyday Cotton Tee" required></div>
         <div class="form-2"><div class="field"><label for="f-cat">Category</label><select class="select" id="f-cat" name="category">${cats.map(c => `<option ${c === st.category ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></div>
-          <div class="field"><label for="f-fit">Garment cut</label><select class="select" id="f-fit" name="fit">${fits.map(f => `<option ${f === (p?.fit || 'Regular') ? 'selected' : ''}>${f}</option>`).join('')}</select></div></div>
+          <div class="field"><label for="f-fit">Fit of this design</label><select class="select" id="f-fit" name="fit">${fits.map(f => `<option ${f === (p?.fit || 'Regular') ? 'selected' : ''}>${f}</option>`).join('')}</select></div></div>
         <div class="form-2"><div class="field"><label for="f-price">Price (${esc(S.merchant.currency)})</label><input class="input" id="f-price" name="price" type="number" min="0" value="${p?.price ?? ''}"></div>
-          <div class="field"><span class="label">Swatch</span><div class="swatches" id="f-sw">${SWATCHES.map((c, i) => `<button type="button" style="--c:${c}" data-i="${i}" class="${i === st.color ? 'on' : ''}" aria-label="Swatch ${i + 1}"></button>`).join('')}</div></div></div>
+          <div class="field"><span class="label">Card colour</span><div class="swatches" id="f-sw">${SWATCHES.map((c, i) => `<button type="button" style="--c:${c}" data-i="${i}" class="${i === st.color ? 'on' : ''}" aria-label="Swatch ${i + 1}"></button>`).join('')}</div></div></div>
         <div class="field"><label for="f-desc">Description</label><textarea class="textarea" id="f-desc" name="description" maxlength="400">${esc(p?.description || '')}</textarea></div>
-        <div class="field"><div style="display:flex;justify-content:space-between;align-items:center"><span class="label">Garment size chart · cm</span><span><button type="button" class="btn ghost small" id="row-add">+ Size</button></span></div>
+        <div class="field"><div style="display:flex;justify-content:space-between;align-items:center"><span class="label">Garment size chart</span><span style="display:flex;gap:8px;align-items:center"><span class="seg" id="f-unit"><button type="button" data-u="cm" class="on">cm</button><button type="button" data-u="in">inches</button></span><button type="button" class="btn ghost small" id="row-add">+ Size</button></span></div>
           <div class="table-wrap" style="margin:0;padding:0"><table class="chart-edit" id="chart-edit"></table></div>
-          <span class="helper">Measure the garment flat and double it for chest, waist and hips. Each size needs ${'<b id="req"></b>'}.</span></div>
+          <span class="helper">Measure the clothes, not a person: lay the garment flat and double it for chest, waist and hips. Each size needs ${'<b id="req"></b>'}.</span><span class="helper" id="unit-warn" style="color:var(--danger)"></span></div>
       </div>
       <div><div class="preview glass">
         <span class="eyebrow"><span class="dot"></span>Live fit preview</span>
@@ -280,11 +296,20 @@ function editor(p, onSaved) {
     $('#req').textContent = { tops: 'a chest', bottoms: 'a waist', dresses: 'chest and waist' }[GROUP_OF(st.category)] + ' measurement';
     $('#chart-edit').innerHTML = `<thead><tr><th>Size</th>${d.map(x => `<th>${x}</th>`).join('')}<th></th></tr></thead><tbody>${st.rows.map((r, i) => `<tr><td><input class="size-in" data-r="${i}" data-k="size" value="${esc(r.size)}" maxlength="10" aria-label="Size label"></td>${d.map(k => `<td><input type="number" step="0.5" data-r="${i}" data-k="${k}" value="${r[k] ?? ''}" aria-label="${esc(r.size)} ${k}"></td>`).join('')}<td><button type="button" class="icon-btn" data-rm="${i}" aria-label="Remove size">✕</button></td></tr>`).join('')}</tbody>`;
   };
+  let unit = 'cm';
+  const toCm = v => (unit === 'in' ? Math.round(Number(v) * 2.54 * 10) / 10 : Number(v));
+  const autoSku = name => name.toUpperCase().normalize('NFKD').replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24) + '-' + Math.random().toString(36).slice(2, 5).toUpperCase();
   const payload = () => {
     const f = Object.fromEntries(new FormData($('#ed-form')));
     const d = dims();
-    return { sku: f.sku.trim(), brand: f.brand, name: f.name, category: st.category, fit: f.fit, price: Number(f.price) || 0, description: f.description, color: st.color,
-      chart: st.rows.map(r => Object.fromEntries([['size', r.size], ...d.filter(k => r[k] !== '' && r[k] != null).map(k => [k, Number(r[k])])])) };
+    const sku = f.sku.trim() || (isNew && f.name.trim() ? autoSku(f.name.trim()) : '');
+    return { sku, brand: f.brand, name: f.name, category: st.category, fit: f.fit, price: Number(f.price) || 0, description: f.description, color: st.color,
+      chart: st.rows.map(r => Object.fromEntries([['size', r.size], ...d.filter(k => r[k] !== '' && r[k] != null).map(k => [k, toCm(r[k])])])) };
+  };
+  const checkUnits = () => {
+    const key = DIMS_FOR[GROUP_OF(st.category)][0];
+    const vals = st.rows.map(r => toCm(r[key])).filter(Number.isFinite);
+    $('#unit-warn').textContent = unit === 'cm' && vals.length && Math.min(...vals) < 60 ? `These look like inches (${key} ${Math.min(...vals)}). Switch the chart to "inches" above, or enter centimetres.` : '';
   };
   let pt, pseq = 0;
   const preview = () => {
@@ -303,14 +328,21 @@ function editor(p, onSaved) {
       } catch (e) { if (my === pseq) { $('#pv-label').textContent = 'Fix the chart to preview'; $('#pv-notes').textContent = e.message; $('#pv-ring').innerHTML = ''; } }
     }, 180);
   };
-  drawChart(); preview();
+  drawChart(); preview(); checkUnits();
+  $('#f-unit').onclick = e => {
+    const b = e.target.closest('button'); if (!b || b.dataset.u === unit) return;
+    // Convert what is already typed so the numbers stay the same garment.
+    const factor = b.dataset.u === 'in' ? 1 / 2.54 : 2.54;
+    for (const r of st.rows) for (const k of dims()) if (r[k] !== '' && r[k] != null) r[k] = Math.round(Number(r[k]) * factor * 10) / 10;
+    unit = b.dataset.u; $$('#f-unit button').forEach(x => x.classList.toggle('on', x === b)); drawChart(); checkUnits();
+  };
   $('#f-cat').onchange = e => {
     const prevGroup = GROUP_OF(st.category); st.category = e.target.value;
     if (GROUP_OF(st.category) !== prevGroup) st.rows = defaults(st.category);
     drawChart(); preview();
   };
   $('#f-sw').onclick = e => { const b = e.target.closest('button'); if (!b) return; st.color = Number(b.dataset.i); $$('#f-sw button').forEach(x => x.classList.toggle('on', x === b)); preview(); };
-  $('#chart-edit').oninput = e => { const i = e.target.dataset.r; if (i == null) return; st.rows[i][e.target.dataset.k] = e.target.value; preview(); };
+  $('#chart-edit').oninput = e => { const i = e.target.dataset.r; if (i == null) return; st.rows[i][e.target.dataset.k] = e.target.value; checkUnits(); preview(); };
   $('#chart-edit').onclick = e => { const b = e.target.closest('[data-rm]'); if (!b) return; if (st.rows.length <= 1) return toast('A chart needs at least one size', 'err'); st.rows.splice(Number(b.dataset.rm), 1); drawChart(); preview(); };
   $('#row-add').onclick = () => {
     const last = st.rows[st.rows.length - 1]; const prev = st.rows[st.rows.length - 2] || last;
@@ -324,13 +356,15 @@ function editor(p, onSaved) {
     const body = payload();
     const btn = $('#ed-save'); btn.disabled = true; $('#ed-err').textContent = '';
     try {
+      if (!body.name.trim()) throw new Error('Give the product a name.');
       await api(isNew ? '/api/products' : `/api/products/${encodeURIComponent(p.sku)}`, { method: isNew ? 'POST' : 'PUT', body });
-      toast(isNew ? `${body.name} added to your catalog` : 'Changes saved'); closeLayer(); onSaved?.();
-    } catch (e) { $('#ed-err').textContent = e.message; btn.disabled = false; }
+      toast(isNew ? `${body.name} added. Next: install Forme on your store (Integration).` : 'Changes saved'); closeLayer(); onSaved?.();
+    } catch (e) { $('#ed-err').textContent = /sku must be/.test(e.message) ? 'Use letters, numbers or dashes for the product code.' : e.message; btn.disabled = false; }
   };
 }
 
 function importModal(onDone) {
+  clearTimeout(layerTimer);
   layer.innerHTML = `<div class="scrim"></div><div class="modal glass" role="dialog" aria-modal="true" aria-labelledby="im-t"><h2 id="im-t">Import products</h2>
     <p>Paste JSON in the form <code>{"products":[…]}</code> or choose a file. Products are matched by SKU: existing ones are updated, new ones created. If any product is invalid, nothing is imported.</p>
     <textarea class="textarea mono" id="im-text" style="min-height:180px;font-size:12px" placeholder='{"products":[{"sku":"TEE-1","name":"Tee","brand":"Acme","category":"T-shirts","fit":"Regular","chart":[{"size":"M","chest":104}]}]}'></textarea>
@@ -351,6 +385,7 @@ function importModal(onDone) {
 }
 
 function confirmModal(title, text, cta) {
+  clearTimeout(layerTimer);
   return new Promise(resolve => {
     layer.innerHTML = `<div class="scrim"></div><div class="modal glass" role="alertdialog" aria-modal="true" aria-labelledby="cf-t"><h2 id="cf-t">${esc(title)}</h2><p>${esc(text)}</p><div class="foot"><button class="btn ghost" id="cf-no">Cancel</button><button class="btn danger" id="cf-yes">${esc(cta)}</button></div></div>`;
     const done = v => { closeLayer(); resolve(v); };
@@ -360,12 +395,12 @@ function confirmModal(title, text, cta) {
 }
 
 /* =================== Insights =================== */
-async function insights() {
+async function insights(my) {
   const view = $('#view');
   view.innerHTML = `<div class="grid insights">${'<div class="skeleton" style="height:220px"></div>'.repeat(6)}</div>`;
-  const d = await api('/api/insights');
-  if (S.view !== 'insights') return;
-  const productsByS = Object.fromEntries((await api('/api/products')).products.map(p => [p.sku, p]));
+  const [d, prods] = await Promise.all([api('/api/insights'), api('/api/products')]);
+  if (stale(my)) return;
+  const productsByS = Object.fromEntries(prods.products.map(p => [p.sku, p]));
   view.innerHTML = `<p class="muted" style="margin:0 0 18px;max-width:760px">Forme learns from keep/return outcomes. When a product keeps coming back as "too small", recommendations for it shift towards bigger sizes, and vice versa. Send outcomes with <code class="mono">POST /v1/feedback</code>.</p>
   <div class="grid insights">${d.products.map((p, i) => {
     const t = Math.max(1, p.total); const pr = productsByS[p.sku];
@@ -384,11 +419,12 @@ async function insights() {
 }
 
 /* =================== Integration =================== */
-async function integration() {
+async function integration(my) {
   const view = $('#view');
   view.innerHTML = '<div class="skeleton"></div>';
-  const { keys } = await api('/api/keys');
-  if (S.view !== 'integration') return;
+  const [{ keys }, { products: prods }] = await Promise.all([api('/api/keys'), api('/api/products')]);
+  if (stale(my)) return;
+  const firstSku = prods[0]?.sku || 'YOUR-PRODUCT-CODE';
   const m = S.merchant;
   const pk = keys.find(k => k.kind === 'public' && !k.revoked_at);
   const host = location.origin;
@@ -397,18 +433,20 @@ async function integration() {
         data-key=<span class="s">"${esc(pk?.key || 'pk_live_…')}"</span> async<span class="k">&gt;&lt;/script&gt;</span>
 
 <span class="c">&lt;!-- On each product page, near the size picker --&gt;</span>
-<span class="k">&lt;div</span> data-forme-sku=<span class="s">"YOUR-SKU"</span><span class="k">&gt;&lt;/div&gt;</span>
+<span class="k">&lt;div</span> data-forme-sku=<span class="s">"${esc(firstSku)}"</span><span class="k">&gt;&lt;/div&gt;</span>
 
 <span class="k">&lt;script&gt;</span>
+  <span class="c">// Optional, for developers: pick the chosen size in your own size buttons</span>
   document.addEventListener(<span class="s">'forme:size-selected'</span>, e =&gt; selectSize(e.detail.size));
-  <span class="c">// After add to cart / checkout:</span>
-  Forme.track(<span class="s">'add_to_cart'</span>, { sku, size });
-  Forme.track(<span class="s">'purchase'</span>, { sku, size, value: price });
+  <span class="c">// After add to cart (safe even if the widget is blocked):</span>
+  window.Forme &amp;&amp; Forme.track(<span class="s">'add_to_cart'</span>, { sku, size });
 <span class="k">&lt;/script&gt;</span>`;
   const accent = m.widget.accent;
-  const ACCENTS = ['#ff5ca8', '#12b76a', '#3d5afe', '#12b76a', '#ff7a2f', '#f5d76e', '#ffffff'];
+  const ACCENTS = ['#c6ff3d', '#ff5ca8', '#12b76a', '#3d5afe', '#ff7a2f', '#ffd43b', '#ffffff'];
   view.innerHTML = `<div class="grid row-2">
-    <section class="card glass"><div class="card-head"><div><h2>Install the widget</h2><p>Paste this into your storefront theme. It adapts to any page and never blocks rendering.</p></div><button class="btn ghost small" id="copy-snippet">Copy</button></div><pre class="snippet">${snippet}</pre>
+    <section class="card glass"><div class="card-head"><div><h2>Install the widget</h2><p>Copy the code, then follow the steps for your store. Replace <b>${esc(firstSku)}</b> with each product's code.</p></div><button class="btn ghost small" id="copy-snippet">Copy code</button></div>
+      <div class="seg" id="plat" style="margin-bottom:12px"><button type="button" class="on" data-p="shopify">Shopify</button><button type="button" data-p="woo">WooCommerce</button><button type="button" data-p="custom">Custom site</button></div>
+      <ol class="helper" id="plat-steps" style="margin:0 0 12px;padding-left:18px;line-height:1.8"></ol><pre class="snippet">${snippet}</pre>
       <p class="helper" style="margin-top:12px">Full reference in the <a href="/docs" style="color:var(--accent-ink)">API docs</a>. Try it on the <a href="/demo" style="color:var(--accent-ink)">demo store</a>.</p></section>
     <section class="card glass" style="--d:.08s"><div class="card-head"><div><h2>Widget style</h2><p>Saved instantly to every storefront using your key.</p></div></div>
       <div class="form-grid"><div class="field"><span class="label">Accent colour</span><div class="swatches" id="acc">${ACCENTS.map(c => `<button type="button" style="--c:${c}" data-c="${c}" class="${c === accent ? 'on' : ''}" aria-label="Accent ${c}"></button>`).join('')}</div></div>
@@ -424,6 +462,14 @@ async function integration() {
   <section class="card glass" style="margin-top:16px;--d:.16s"><div class="card-head"><div><h2>Allowed origins</h2><p>Publishable keys only work from these sites. Leave empty while testing to allow any origin.</p></div><button class="btn small" id="save-origins">Save origins</button></div>
     <div class="origins" id="origins"></div><button class="btn ghost small" id="add-origin" style="margin-top:10px">+ Add origin</button></section>`;
   $('#copy-snippet').onclick = () => copyText($('.snippet').textContent);
+  const STEPS = {
+    shopify: ['Shopify admin → Online Store → Themes → … → Edit code.', 'Open <b>layout/theme.liquid</b> and paste the first two lines just before <code>&lt;/body&gt;</code>.', 'Open your product template (e.g. <b>sections/main-product.liquid</b>) and paste the <code>&lt;div data-forme-sku&gt;</code> line above the Add to cart button, using <code>{{ product.selected_or_first_available_variant.sku }}</code> as the code.', 'Save and open a product page: the "Find my size" button appears.'],
+    woo: ['WordPress admin → Appearance → Theme File Editor (or a "Header & Footer scripts" plugin).', 'Paste the first two lines into the footer, before <code>&lt;/body&gt;</code>.', 'Edit <b>single-product.php</b> (or use a shortcode block) and add the <code>&lt;div data-forme-sku&gt;</code> line with <code>&lt;?php echo $product-&gt;get_sku(); ?&gt;</code>.', 'Save and open a product page to check.'],
+    custom: ['Paste the first two lines once, before <code>&lt;/body&gt;</code> on every page.', 'Put the <code>&lt;div data-forme-sku&gt;</code> line next to your size picker with that product\'s code.', 'Optional: the developer lines let the chosen size select your own size button and report add-to-cart.'],
+  };
+  const drawSteps = k => { $('#plat-steps').innerHTML = STEPS[k].map(x => `<li>${x}</li>`).join(''); };
+  drawSteps('shopify');
+  $('#plat').onclick = e => { const b = e.target.closest('button'); if (!b) return; $$('#plat button').forEach(x => x.classList.toggle('on', x === b)); drawSteps(b.dataset.p); };
   let wt;
   const saveWidget = patch => { clearTimeout(wt); wt = setTimeout(async () => { try { S.merchant = (await api('/api/account', { method: 'PATCH', body: { widget: patch } })).merchant; toast('Widget style saved'); } catch (e) { toast(e.message, 'err'); } }, 500); };
   $('#acc').onclick = e => { const b = e.target.closest('button'); if (!b) return; $$('#acc button').forEach(x => x.classList.toggle('on', x === b)); $('#w-prev').style.setProperty('--a', b.dataset.c); saveWidget({ accent: b.dataset.c }); };

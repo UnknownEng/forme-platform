@@ -44,12 +44,13 @@ async function screenshots(context) {
 
   await page.goto(base + '/demo#/p/NL-KRT-11', { waitUntil: 'networkidle' }); await sleep(800);
   await page.locator('[data-forme-sku] >> .trigger').click(); await sleep(700);
-  await page.locator('[data-forme-panel] >> input[name=height]').fill('160');
+  await page.locator('[data-forme-panel] >> input[name=hft]').fill('5');
+  await page.locator('[data-forme-panel] >> input[name=hin]').fill('3');
   await page.locator('[data-forme-panel] >> input[name=weight]').fill('55');
   await page.locator('[data-forme-panel] >> .card[data-v=female]').click();
   await page.locator('[data-forme-panel] >> .foot .btn').click(); await sleep(500);
   await page.locator('[data-forme-panel] >> .foot .btn:not(.ghost)').click(); await sleep(3000);
-  out.widget = await shot({ clip: { x: 1480, y: 64, width: 440, height: 680 } });
+  out.widget = await shot({ clip: { x: 1480, y: 60, width: 440, height: 680 } });
 
   await page.goto(base + '/console', { waitUntil: 'networkidle' });
   await page.locator('#demo-btn').click(); await page.waitForSelector('.kpi'); await sleep(3500);

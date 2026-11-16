@@ -61,6 +61,7 @@ function render() {
   $$('.nav-item').forEach(a => a.classList.toggle('on', a.dataset.v === S.view));
   $('#title').textContent = VIEWS.find(x => x[0] === S.view)[2];
   const view = $('#view'); view.className = 'view'; void view.offsetWidth; view.className = 'view';
+  view.onclick = null; // handlers belong to one view only
   view.innerHTML = '<div class="skeleton"></div>';
   ({ overview, merchants, engine, activity, audit, system })[S.view]().catch(e => {
     if (e.status === 401) return login();
@@ -106,7 +107,8 @@ async function merchants() {
   await load();
 }
 
-function closeLayer() { const d = $('.drawer', layer); if (d) { d.classList.add('closing'); setTimeout(() => { layer.innerHTML = ''; }, 280); } else layer.innerHTML = ''; }
+let layerTimer;
+function closeLayer() { clearTimeout(layerTimer); const d = $('.drawer', layer); if (d) { d.classList.add('closing'); layerTimer = setTimeout(() => { layer.innerHTML = ''; }, 280); } else layer.innerHTML = ''; }
 function confirmBox(title, text, cta) {
   return new Promise(res => {
     const prev = layer.innerHTML;
@@ -119,6 +121,7 @@ function confirmBox(title, text, cta) {
 }
 
 async function merchantDrawer(id, onChange) {
+  clearTimeout(layerTimer);
   const d = await api(`/api/admin/merchants/${encodeURIComponent(id)}`);
   const m = d.merchant, k = d.analytics.kpis;
   layer.innerHTML = `<div class="scrim"></div><aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="md-t">

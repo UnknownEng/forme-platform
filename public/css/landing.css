@@ -87,7 +87,7 @@ main, .footer, .nav { position: relative; z-index: 2; }
 .chip.violet { background: #e3d9ff; } .chip.mint { background: #c9f7df; }
 
 /* ---------- Marquee ---------- */
-.marquee { overflow: hidden; background: var(--ink); color: #fff; border-block: var(--edge); padding: 18px 0; transform: rotate(-1.5deg); margin: 30px -20px; position: relative; z-index: 3; }
+.marquee { overflow: hidden; background: var(--ink); color: #fff; border-block: var(--edge); padding: 18px 0; transform: rotate(-1.5deg) scaleX(1.03); margin: 30px 0; position: relative; z-index: 3; }
 .marquee-track { display: flex; gap: 30px; width: max-content; animation: marquee 32s linear infinite; font-family: var(--display); font-size: 28px; font-weight: 800; letter-spacing: -.02em; }
 .marquee-track i { color: var(--lime); font-style: normal; }
 @keyframes marquee { to { transform: translateX(-50%); } }
@@ -240,3 +240,9 @@ input[type='range']::-moz-range-thumb { width: 20px; height: 20px; border-radius
   .plan.featured { transform: none; }
   .marquee-track { font-size: 22px; }
 }
+
+/* Usability pass */
+html, body { overflow-x: clip; }
+.free-line { margin: 16px 0 0; font-size: 14px; font-weight: 600; color: var(--text-2); }
+.free-line a { text-decoration: underline; }
+@media (max-width: 760px) { #threads { opacity: .35; } .blobs { display: none; } }

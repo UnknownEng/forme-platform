@@ -83,7 +83,7 @@ function pdp(sku) {
   // Integration point: the widget tells us which size the shopper chose.
   $('[data-forme-sku]').addEventListener('forme:size-selected', e => {
     selected = e.detail.size; recommended = e.detail.recommended; recId = e.detail.rec_id;
-    $('#hint').textContent = `Forme fit check: ${e.detail.recommended} · ${e.detail.confidence}% confidence`;
+    $('#hint').textContent = e.detail.for_someone_else ? `Forme suggests ${e.detail.recommended} for them` : `Forme suggests ${e.detail.recommended} for you`;
     paint();
   });
   $('#add').addEventListener('click', () => {

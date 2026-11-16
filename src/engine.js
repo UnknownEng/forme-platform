@@ -38,7 +38,8 @@ function resolveBody(input = {}) {
   const height = Number(input.height);
   if (!Number.isFinite(height) || height < 120 || height > 225) throw new Error('height must be between 120 and 225 cm');
   const weight = Number(input.weight);
-  const bmi = Number.isFinite(weight) && weight > 30 && weight < 250 ? weight / ((height / 100) ** 2) : null;
+  // Same inclusive bounds as the validator, so 30 kg and 250 kg are not silently ignored.
+  const bmi = Number.isFinite(weight) && weight >= 30 && weight <= 250 ? weight / ((height / 100) ** 2) : null;
   const buildShift = { Slim: -1, Average: 0, Broad: 1 }[input.build] ?? 0;
   const b = bmi == null ? buildShift * 2.2 : clamp(bmi - 22.5, -6, 14) + buildShift * 0.8;
   const r = RATIOS[input.sex] || Object.fromEntries(Object.keys(RATIOS.male).map(k => [k, (RATIOS.male[k] + RATIOS.female[k]) / 2]));
@@ -53,7 +54,7 @@ function resolveBody(input = {}) {
   const estimated = [];
   for (const dim of ['chest', 'waist', 'hips', 'shoulders', 'inseam']) {
     const v = Number(input[dim]);
-    if (Number.isFinite(v) && v > 10 && v < 250) body[dim] = v;
+    if (input[dim] != null && input[dim] !== '' && Number.isFinite(v) && v >= 20 && v <= 250) body[dim] = v;
     else { body[dim] = round1(estimates[dim]); estimated.push(dim); }
   }
   return { body, estimated, fit: FITS.includes(input.fit) ? input.fit : 'Regular' };
@@ -126,7 +127,9 @@ function recommend(product, profileInput, feedback) {
   const { body, estimated, fit } = resolveBody(profileInput);
   const cal = calibration(feedback);
   const target = targets(body, fit, product.fit, group, cal.shift_cm, product.category);
-  const chart = product.chart;
+  // Work smallest to largest even if an older chart was stored out of order.
+  const key = GROUPS[group].required[0];
+  const chart = [...product.chart].sort((a, b) => (a[key] ?? 0) - (b[key] ?? 0));
 
   const scored = chart.map(row => ({ row, ...scoreRow(row, target, weights, group, estimated) })).filter(s => Number.isFinite(s.penalty));
   if (!scored.length) throw new Error('size chart has no measurements this engine can use');
@@ -140,7 +143,8 @@ function recommend(product, profileInput, feedback) {
   confidence -= Math.min(12, estimatedUsed.length * 4);
   if (cal.samples >= 10) confidence += 3;
   // Edge of the chart and still far off: the range probably does not suit.
-  const outOfRange = (idx === 0 || idx === chart.length - 1) && best.penalty > 5;
+  // (A one-size garment, e.g. a free-size kaftan, is never "out of range" by position.)
+  const outOfRange = chart.length > 1 && (idx === 0 || idx === chart.length - 1) && best.penalty > 5;
   if (outOfRange) confidence -= 10;
   // With nothing measured, the size is an informed guess: never call it a strong match.
   const measured = usedDims.filter(d => !estimated.includes(d) && d !== 'length');
@@ -152,20 +156,30 @@ function recommend(product, profileInput, feedback) {
   const runner = ranked[1];
   if (runner && runner.penalty - best.penalty < 1.2) {
     const runnerIdx = chart.indexOf(runner.row);
+    const up = runnerIdx > idx;
+    // Neutral wording, so it never contradicts the fit the shopper asked for.
     alternative = {
       size: runner.row.size,
-      reason: runnerIdx > idx ? 'You are between sizes. Size up for a looser feel.' : 'You are between sizes. Size down for a closer feel.',
+      direction: up ? 'up' : 'down',
+      reason: up ? `You're between sizes. Pick ${runner.row.size} if you want more room.` : `You're between sizes. Pick ${runner.row.size} if you want it closer to the body.`,
     };
   }
 
-  const label = confidence >= 88 ? 'Strong match' : confidence >= 74 ? 'Good match' : confidence >= 58 ? 'Fair match' : 'Low confidence';
+  // Plain words instead of scores: shoppers read "73%" as a discount or an error.
+  const label = confidence >= 88 ? 'Very likely to fit' : confidence >= 74 ? 'Likely to fit' : confidence >= 58 ? 'Might fit — check the chart' : 'Not sure';
+  const notes = usedDims.map(d => ({ ...note(d, best.deltas[d]), estimated: estimated.includes(d) }));
+  const girth = notes.filter(n => n.area !== 'length' && n.area !== 'inseam');
+  // Whole chart too big or too small for this body (often inches typed as cm).
+  const warning = idx === 0 && girth.length && girth.every(n => n.fit === 'roomy') ? 'all_loose'
+    : idx === chart.length - 1 && girth.length && girth.every(n => n.fit === 'snug') ? 'all_tight' : null;
   return {
     size: best.row.size,
     confidence,
     label,
     alternative,
-    fit_notes: usedDims.map(d => ({ ...note(d, best.deltas[d]), estimated: estimated.includes(d) })),
+    fit_notes: notes,
     out_of_range: outOfRange,
+    warning,
     estimated: estimatedUsed,
     calibration: cal,
     fit_preference: fit,

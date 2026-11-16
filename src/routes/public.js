@@ -35,7 +35,7 @@ function register(router, { db, services, config, limits, selfOrigin }) {
 
   // Shopper profiles are global so one Forme profile works at every store.
   const profileFromToken = raw => {
-    if (!raw || !/^fp_[A-Za-z0-9_-]{20,}$/.test(raw)) return null;
+    if (typeof raw !== 'string' || !/^fp_[A-Za-z0-9_-]{20,}$/.test(raw)) return null;
     const row = db.get('SELECT * FROM profiles WHERE token_hash = ?', sha256(raw));
     return row ? { id: row.id, data: JSON.parse(row.data) } : null;
   };
@@ -114,7 +114,7 @@ function register(router, { db, services, config, limits, selfOrigin }) {
   router.post('/v1/events', any, async ctx => {
     const b = await readJson(ctx.req, 16 * 1024);
     if (!EVENT_TYPES.includes(b.type)) fail(400, 'invalid_event', `type must be one of: ${EVENT_TYPES.join(', ')}`);
-    if (b.value != null && !validate.num(b.value, 0, 10_000_000)) fail(400, 'invalid_event', 'value must be a positive number.');
+    if (b.value != null && !((typeof b.value === 'number' || typeof b.value === 'string') && validate.num(b.value, 0, 10_000_000))) fail(400, 'invalid_event', 'value must be a positive number.');
     // Events must name a real product, and a real recommendation if they cite one,
     // so nobody can scribble fake products or IDs into a brand's activity feed.
     let product = null;
@@ -128,7 +128,7 @@ function register(router, { db, services, config, limits, selfOrigin }) {
       : null;
     if (b.rec_id != null && !rec) fail(400, 'invalid_event', 'rec_id does not match a recommendation for this account.');
     if (rec && product && rec.sku !== product.sku) fail(400, 'invalid_event', 'rec_id belongs to a different product.');
-    let value = b.value ?? null;
+    let value = b.value == null ? null : Number(b.value);
     if (b.type === 'purchase') {
       if (!product) fail(400, 'invalid_event', 'purchase events need a sku.');
       if (ctx.keyKind === 'public') {
