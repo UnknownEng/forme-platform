@@ -5,6 +5,10 @@ const crypto = require('node:crypto');
 const ROOT = path.resolve(__dirname, '..');
 const ON_VERCEL = !!process.env.VERCEL;
 
+if (ON_VERCEL && !process.env.FORME_SECRET) {
+  console.warn('[forme] FORME_SECRET is not set. Each server instance will sign sessions with its own random key, so console logins will fail at random. Add FORME_SECRET in Vercel → Settings → Environment Variables, then redeploy.');
+}
+
 module.exports = {
   ROOT,
   PUBLIC_DIR: path.join(ROOT, 'public'),

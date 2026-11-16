@@ -11,6 +11,26 @@ Forme gives every shopper one portable fit profile and recommends the right size
 | REST API | `/v1/*` | Recommend, batch recommend, profiles, events, feedback, catalog sync |
 | API docs | `/docs`, `/openapi.json` | Rendered reference + OpenAPI 3.1 spec |
 
+## Live
+
+- Site: https://forme-platform.vercel.app
+- Console: https://forme-platform.vercel.app/console (press **Open demo**)
+- Demo store: https://forme-platform.vercel.app/demo
+- API docs: https://forme-platform.vercel.app/docs
+
+### Deploying on Vercel
+Import the repo on Vercel and add one environment variable, **`FORME_SECRET`** (any long random string). It signs console logins so they work on every serverless instance. Vercel functions have no permanent disk: the demo workspace is rebuilt identically on each instance, but new sign-ups and live events are not kept. Move to Postgres before onboarding real customers.
+
+## Videos
+
+`video/` renders the product walkthrough and the narrated pitch (needs Chrome and ffmpeg):
+
+```sh
+cd video && npm install
+node walkthrough.js
+node pitch.js forme-platform.vercel.app
+```
+
 ## Run it
 
 Needs **Node.js 22.13 or later** (uses the built-in `node:sqlite`). No `npm install` needed: there are zero third-party dependencies.
