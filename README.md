@@ -77,7 +77,8 @@ legacy-mvp/          the original MVP, kept for reference
 
 ### Security already in place
 - Passwords hashed with scrypt; constant-time login checks.
-- Session tokens and secret API keys are stored only as SHA-256 hashes. Secret keys are shown once.
+- Sessions are HMAC-signed cookies (FORME_SECRET); signing out bumps a per-merchant counter so old cookies stop working (on hosts with shared storage). Secret API keys are stored only as SHA-256 hashes and shown once.
+- The public demo workspace is read-only.
 - Console mutations need a `X-Forme-Request` header on top of an HttpOnly SameSite=Lax cookie (CSRF).
 - Publishable keys can be locked to allowed origins; secret keys are refused when sent from a browser.
 - Rate limits per key, per IP and on login/signup. Body size limits. Strict CSP on all pages.

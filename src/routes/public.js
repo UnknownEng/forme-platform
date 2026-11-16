@@ -147,8 +147,10 @@ function register(router, { db, services, config, limits, selfOrigin }) {
 
   router.post('/v1/feedback', secret, async ctx => {
     const b = await readJson(ctx.req);
-    if (typeof b.sku !== 'string' || !services.products.get(ctx.merchant.id, b.sku)) fail(404, 'product_not_found', 'Unknown sku.');
+    const fp = typeof b.sku === 'string' ? services.products.get(ctx.merchant.id, b.sku) : null;
+    if (!fp) fail(404, 'product_not_found', 'Unknown sku.');
     if (!validate.str(String(b.size ?? ''), 10)) fail(400, 'invalid_size', 'size is required.');
+    if (!fp.chart.some(r => r.size === String(b.size))) fail(400, 'invalid_size', `size must be one of: ${fp.chart.map(r => r.size).join(', ')}`);
     if (!OUTCOMES.includes(b.outcome)) fail(400, 'invalid_outcome', `outcome must be one of: ${OUTCOMES.join(', ')}`);
     return { status: 201, body: services.addFeedback(ctx.merchant.id, { sku: b.sku, size: String(b.size), outcome: b.outcome, rec_id: typeof b.rec_id === 'string' ? b.rec_id : null }) };
   });

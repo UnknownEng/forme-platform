@@ -91,13 +91,16 @@ function parseCookies(req) {
 function rateLimiter({ windowMs, max }) {
   const hits = new Map();
   setInterval(() => { const now = Date.now(); for (const [k, v] of hits) if (v.reset < now) hits.delete(k); }, windowMs).unref();
-  return key => {
+  const hit = key => {
     const now = Date.now();
     let h = hits.get(key);
     if (!h || h.reset < now) { h = { count: 0, reset: now + windowMs }; hits.set(key, h); }
     h.count++;
     return { ok: h.count <= max, remaining: Math.max(0, max - h.count), reset: h.reset };
   };
+  // Check the current count without adding to it.
+  hit.peek = key => { const h = hits.get(key); return { ok: !h || h.reset < Date.now() || h.count < max }; };
+  return hit;
 }
 
 const MIME = {

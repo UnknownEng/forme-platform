@@ -32,6 +32,7 @@ module.exports = function spec(version) {
       },
     },
     paths: {
+      '/v1/widget-config': { get: { summary: 'Widget settings for this key (colour, label)', responses: { 200: { description: 'Settings' } } } },
       '/v1/health': { get: { summary: 'Service health', security: [], responses: { 200: { description: 'OK' } } } },
       '/v1/recommend': { post: { summary: 'Recommend a size for one product', description: 'Publishable or secret key. Send either profile or profile_token.',
         requestBody: json({ type: 'object', required: ['sku'], properties: { sku: { type: 'string' }, profile: ref('Profile'), profile_token: { type: 'string' } } }),
@@ -47,9 +48,9 @@ module.exports = function spec(version) {
       '/v1/feedback': { post: { summary: 'Report a keep/return outcome (secret key)', description: 'Feeds per-product calibration.', requestBody: json({ type: 'object', required: ['sku', 'size', 'outcome'], properties: { sku: { type: 'string' }, size: { type: 'string' }, outcome: { enum: ['kept', 'too_small', 'too_large', 'returned_other'] }, rec_id: { type: 'string' } } }), responses: { 201: { description: 'Stored' } } } },
       '/v1/products': { get: { summary: 'List catalog (secret key)', responses: { 200: { description: 'Products' } } } },
       '/v1/products/{sku}': {
-        get: { summary: 'Get a product and size chart', parameters: [{ name: 'sku', in: 'path', required: true }], responses: { 200: { description: 'Product' }, 404: err } },
-        put: { summary: 'Create or update a product (secret key)', parameters: [{ name: 'sku', in: 'path', required: true }], requestBody: json(ref('Product')), responses: { 200: { description: 'Updated' }, 201: { description: 'Created' }, 400: err } },
-        delete: { summary: 'Delete a product (secret key)', parameters: [{ name: 'sku', in: 'path', required: true }], responses: { 200: { description: 'Deleted' } } },
+        get: { summary: 'Get a product and size chart', parameters: [{ name: 'sku', in: 'path', required: true, schema: { type: 'string' } }], responses: { 200: { description: 'Product' }, 404: err } },
+        put: { summary: 'Create or update a product (secret key)', parameters: [{ name: 'sku', in: 'path', required: true, schema: { type: 'string' } }], requestBody: json(ref('Product')), responses: { 200: { description: 'Updated' }, 201: { description: 'Created' }, 400: err } },
+        delete: { summary: 'Delete a product (secret key)', parameters: [{ name: 'sku', in: 'path', required: true, schema: { type: 'string' } }], responses: { 200: { description: 'Deleted' } } },
       },
       '/v1/products/bulk': { post: { summary: 'Upsert up to 2000 products (secret key)', requestBody: json({ type: 'object', properties: { products: { type: 'array', items: ref('Product') } } }), responses: { 200: { description: 'created / updated / failed' } } } },
     },

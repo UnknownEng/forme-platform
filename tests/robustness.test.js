@@ -77,3 +77,18 @@ test('analytics: one bucket per day, and the chart agrees with the headline numb
   const pkToday = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);
   assert.equal(a.series.at(-1).date, pkToday);
 });
+
+test('the shared demo workspace is read-only', async () => {
+  const del = await fetch(base + '/api/keys/key_demo_public', { method: 'DELETE', headers: { ...H, cookie } });
+  assert.equal(del.status, 403);
+  assert.equal((await fetch(base + '/api/products/NL-TEE-01', { method: 'DELETE', headers: { ...H, cookie } })).status, 403);
+  assert.equal((await fetch(base + '/api/account', { method: 'PATCH', headers: { ...H, cookie }, body: JSON.stringify({ name: 'Hacked' }) })).status, 403);
+  assert.equal((await fetch(base + '/demo-config.json')).status, 200);
+});
+
+test('successful logins do not use up the login limit', async () => {
+  for (let i = 0; i < 16; i++) {
+    const r = await fetch(base + '/api/auth/login', { method: 'POST', headers: H, body: JSON.stringify({ email: 'demo@forme.dev', password: 'forme-demo-2026' }) });
+    assert.equal(r.status, 200, `login ${i + 1}`);
+  }
+});

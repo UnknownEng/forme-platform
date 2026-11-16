@@ -42,7 +42,7 @@
       weight: 'Weight', sizes: 'Sizes for', women: 'Women', men: 'Men',
       tailor: 'Tailor measurements (optional)', tailorNote: 'Body measurements, not the clothes.', inches: 'inches',
       chest: 'Chest', waist: 'Waist', hips: 'Hips', shoulders: 'Shoulders', length: 'Length', inseam: 'Inside leg (crotch to ankle)',
-      errHeight: 'Enter a height, for example 5 ft 4 in or 163 cm.', errWeight: 'Weight should be in kilograms, between 30 and 250.',
+      errHeight: 'Enter a height, for example 5 ft 4 in or 163 cm.', errWeight: 'Weight should be in kilograms, between 30 and 250.', errMeasure: '{f} looks too small or too big. Check the number and whether it is in inches or cm.',
       readAs: 'We read that as {v}.', looksInches: '{f} {v} looked like inches, so we used {v} in.',
       next: 'Continue', back: 'Back', see: 'See my size',
       consent: 'We only use these numbers to pick a size. No name, phone number or photo. Delete any time with "Forget me".', privacy: 'Privacy',
@@ -69,7 +69,7 @@
       weight: 'وزن', sizes: 'سائز', women: 'خواتین', men: 'مرد',
       tailor: 'درزی والے ناپ (اختیاری)', tailorNote: 'جسم کے ناپ، کپڑے کے نہیں۔', inches: 'انچ',
       chest: 'سینہ', waist: 'کمر', hips: 'کولہے', shoulders: 'کندھے', length: 'لمبائی', inseam: 'اندرونی ٹانگ (ران سے ٹخنے تک)',
-      errHeight: 'قد درج کریں، مثلاً 5 فٹ 4 انچ یا 163 سینٹی میٹر۔', errWeight: 'وزن کلو میں 30 سے 250 کے درمیان ہونا چاہیے۔',
+      errHeight: 'قد درج کریں، مثلاً 5 فٹ 4 انچ یا 163 سینٹی میٹر۔', errWeight: 'وزن کلو میں 30 سے 250 کے درمیان ہونا چاہیے۔', errMeasure: '{f} کا ناپ درست نہیں لگتا۔ نمبر اور انچ/سینٹی میٹر دوبارہ دیکھیں۔',
       readAs: 'ہم نے اسے {v} سمجھا۔', looksInches: '{f} {v} انچ لگا، اس لیے {v} انچ لیا گیا۔',
       next: 'آگے', back: 'واپس', see: 'میرا سائز دکھائیں',
       consent: 'ہم یہ معلومات صرف سائز بتانے کے لیے استعمال کرتے ہیں۔ نام، فون یا تصویر نہیں لی جاتی۔ "میری معلومات مٹا دیں" سے کبھی بھی ختم کریں۔', privacy: 'رازداری',
@@ -124,6 +124,7 @@
     return viaToken.catch(function (e) {
       var f = load(CACHE);
       if (e.code !== 'profile_required' || !f || !f.height) throw e;
+      // (an invalid cached profile is reported as invalid_profile and cleared by open())
       return call('POST', '/v1/recommend', { sku: sku, profile: toProfile(f) });
     }).then(function (r) {
       lastRecs[sku] = { size: r.size, confidence: r.confidence, rec_id: r.rec_id };
@@ -242,7 +243,7 @@
     var my = ++gen;
     if (!host) { host = document.createElement('div'); host.setAttribute('data-forme-panel', ''); document.body.appendChild(host); shadow = host.attachShadow({ mode: 'open' }); }
     var cached = load(CACHE);
-    state = { sku: sku, gen: my, anchor: anchor || document.querySelector('[data-forme-sku="' + (window.CSS && window.CSS.escape ? window.CSS.escape(sku) : sku) + '"]'), forOther: false, form: cached || blankForm(), prevFocus: document.activeElement };
+    state = { sku: sku, gen: my, anchor: anchor || document.querySelector('[data-forme-sku="' + (window.CSS && window.CSS.escape ? window.CSS.escape(sku) : sku) + '"]'), forOther: false, form: cached || blankForm(), prevFocus: (anchor && anchor.__forme && anchor.__forme.root.querySelector('button')) || document.activeElement };
     track('widget_open', { sku: sku });
     frame();
     document.addEventListener('keydown', onKey);
@@ -252,7 +253,7 @@
       loading();
       recommendSaved(sku).then(function (r) { if (my === gen) result(r); }).catch(function (e) {
         if (my !== gen) return;
-        if (e.code === 'profile_required') { drop(STORE); step1(); } else error(e);
+        if (e.code === 'profile_required' || e.code === 'invalid_profile') { drop(STORE); drop(CACHE); state.form = blankForm(); step1(); } else error(e);
       });
     } else step1();
   }
@@ -279,7 +280,15 @@
     clearTimeout(closeTimer);
     closeTimer = setTimeout(function () { shadow.innerHTML = ''; if (state && state.prevFocus && state.prevFocus.focus) state.prevFocus.focus(); }, 350);
   }
-  function onKey(e) { if (e.key === 'Escape') close(); }
+  function onKey(e) {
+    if (e.key === 'Escape') return close();
+    if (e.key !== 'Tab' || !shadow) return;
+    var items = [].slice.call(shadow.querySelectorAll('button, input, a[href], summary, select, textarea')).filter(function (el) { return !el.disabled && el.offsetParent !== null; });
+    if (!items.length) return;
+    var first = items[0], last = items[items.length - 1], cur = shadow.activeElement;
+    if (e.shiftKey && (cur === first || !cur)) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && (cur === last || !cur)) { e.preventDefault(); first.focus(); }
+  }
   function $(s) { return shadow.querySelector(s); }
   function body(html, foot) {
     var b = $('.body'); if (!b) return false;
@@ -361,20 +370,28 @@
     };
     $('.body').onkeydown = function (e) { if (e.key === 'Enter' && e.target.tagName === 'INPUT') $('.foot .btn').click(); };
   }
+  // Height typed as "5.3" or "5.11" (Pakistani shorthand for feet.inches). Returns [ft, in] or null.
+  function feetInches(raw) {
+    var m = /^\s*([3-7])(?:[.,'’ ]+\s*(\d{1,2}))?\s*(?:"|”|in)?\s*$/.exec(String(raw || ''));
+    if (!m || m[2] == null) return null;
+    var inch = parseInt(m[2], 10);
+    return inch <= 11 ? [parseInt(m[1], 10), inch] : null;
+  }
   // Reads the form into state.form (always in cm). Returns false on error, or a note
   // describing any automatic unit correction.
   function readInto(v, quiet) {
-    var f = state.form, notes = [], err = function (m) { if (!quiet) $('.err').textContent = m; return false; };
+    var f = state.form, notes = [], bad = null, err = function (m) { if (!quiet) $('.err').textContent = m; return false; };
     var h = null;
     if ('hft' in v) {
       var ft = parseFloat(v.hft), inch = parseFloat(v.hin || '0');
       if (isFinite(ft)) {
-        if (ft > 3 && ft < 8 && Math.floor(ft) !== ft && !v.hin) { var whole = Math.floor(ft); inch = Math.round((ft - whole) * 10); ft = whole; } // "5.3" means 5 ft 3 in
+        var fi = feetInches(v.hft); if (fi && !v.hin) { ft = fi[0]; inch = fi[1]; } // "5.3" means 5 ft 3 in, "5.11" means 5 ft 11 in
         h = ft * 30.48 + (isFinite(inch) ? inch : 0) * IN;
       }
     } else if ('hcm' in v) {
       var c = parseFloat(v.hcm);
-      if (c >= 4 && c < 8) { var w2 = Math.floor(c), i2 = Math.round((c - w2) * 10); h = w2 * 30.48 + i2 * IN; notes.push(t('readAs', { v: w2 + "' " + i2 + '" (' + Math.round(h) + ' cm)' })); }
+      var fc = feetInches(v.hcm);
+      if (fc) { var w2 = fc[0], i2 = fc[1]; h = w2 * 30.48 + i2 * IN; notes.push(t('readAs', { v: w2 + "' " + i2 + '" (' + Math.round(h) + ' cm)' })); }
       else if (c >= 48 && c <= 90) { h = c * IN; notes.push(t('readAs', { v: c + ' in (' + Math.round(h) + ' cm)' })); }
       else h = c;
     }
@@ -391,8 +408,11 @@
       // Tailors measure in inches: a "36" chest in the cm box is really 36 inches.
       var tooSmall = { chest: 60, waist: 50, hips: 60, inseam: 45 }[k];
       if (f.mUnit === 'cm' && cm < tooSmall && x * IN >= tooSmall) { cm = x * IN; notes.push(t('looksInches', { f: t(k), v: x })); }
+      var range = { chest: [60, 200], waist: [45, 200], hips: [60, 200], inseam: [45, 110] }[k];
+      if (cm < range[0] || cm > range[1]) { if (!quiet) { bad = t(k); } return; }
       f[k] = r1(cm);
     });
+    if (bad) return err(t('errMeasure', { f: bad }));
     return notes.join(' ');
   }
   function step2() {
@@ -415,12 +435,11 @@
       call('POST', '/v1/recommend', { sku: sku, profile: p }).then(function (r) { if (my === gen) result(r); }).catch(function (e) { if (my === gen) error(e); });
       return;
     }
-    save(CACHE, f);
     var tk = token();
     var saved = tk ? call('PUT', '/v1/profiles/me', p, { 'X-Forme-Profile': tk }).then(function () { return tk; }).catch(function () { return null; }) : Promise.resolve(null);
     saved.then(function (existing) {
       return existing || call('POST', '/v1/profiles', p).then(function (r) { save(STORE, r.profile_token); return r.profile_token; }).catch(function () { return null; });
-    }).then(function () { return recommendSaved(sku); })
+    }).then(function () { save(CACHE, f); return recommendSaved(sku); })
       .then(function (r) { if (my === gen) { result(r); refresh(); } }).catch(function (e) { if (my === gen) error(e); });
   }
   function confWord(c) { return c >= 88 ? t('c1') : c >= 74 ? t('c2') : c >= 58 ? t('c3') : t('c4'); }

@@ -42,7 +42,7 @@ function createApp(overrides = {}) {
     const mid = db.get("SELECT value FROM meta WHERE key = 'demo_seeded'")?.value;
     const key = mid && db.get("SELECT public_token FROM api_keys WHERE merchant_id = ? AND kind = 'public' AND revoked_at IS NULL ORDER BY created_at LIMIT 1", mid);
     if (!key) return { status: 404, body: { error: { code: 'no_demo', message: 'Demo workspace is not installed.' } } };
-    return { publicKey: key.public_token, products: services.products.list(mid).map(p => ({ sku: p.sku, name: p.name, brand: p.brand, category: p.category, fit: p.fit, price: p.price, description: p.description, color: p.color })) };
+    return { publicKey: key.public_token, products: services.products.list(mid).map(p => ({ sku: p.sku, name: p.name, brand: p.brand, category: p.category, fit: p.fit, price: p.price, description: p.description, color: p.color, sizes: p.chart.map(r => r.size) })) };
   });
 
   const handler = async (req, res) => {

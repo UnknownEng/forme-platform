@@ -25,9 +25,13 @@ function register(router, { db, auth, services, config, limits }) {
     if (ctx.req.method !== 'GET' && ctx.req.headers['x-forme-request'] !== '1') fail(403, 'csrf', 'Missing X-Forme-Request header.');
     ctx.merchant = m;
   };
+  const demoId = () => db.get("SELECT value FROM meta WHERE key = 'demo_seeded'")?.value;
+  const writable = ctx => {
+    if (ctx.merchant.id === demoId()) fail(403, 'demo_read_only', 'The demo workspace is read-only, so it stays the same for every visitor. Apply for a pilot to get your own workspace.');
+  };
   const authLimit = ctx => {
-    const r = limits.auth(ctx.ip);
-    if (!r.ok) fail(429, 'rate_limited', 'Too many attempts. Wait a minute and try again.');
+    if (!limits.auth.peek(ctx.ip).ok) fail(429, 'rate_limited', 'Too many attempts. Wait a minute and try again.');
+    if (ctx.req.url.startsWith('/api/auth/signup')) limits.auth(ctx.ip);
     if (ctx.req.headers['x-forme-request'] !== '1') fail(403, 'csrf', 'Missing X-Forme-Request header.');
   };
 
@@ -53,7 +57,7 @@ function register(router, { db, auth, services, config, limits }) {
     const b = await readJson(ctx.req);
     const m = typeof b.email === 'string' ? db.get('SELECT * FROM merchants WHERE email = ?', b.email.trim()) : null;
     const ok = verifyPassword(String(b.password || ''), m ? m.password_hash : DUMMY_HASH) && !!m;
-    if (!ok) fail(401, 'invalid_credentials', 'Email or password is incorrect.');
+    if (!ok) { limits.auth(ctx.ip); fail(401, 'invalid_credentials', 'Email or password is incorrect.'); }
     if (m.suspended_at) fail(403, 'account_suspended', 'This account is suspended. Contact Forme support.');
     ctx.res.extraHeaders = { 'Set-Cookie': cookie(auth.createSession(m.id), config.SESSION_TTL_MS / 1000) };
     return { merchant: publicMerchant(m) };
@@ -67,7 +71,7 @@ function register(router, { db, auth, services, config, limits }) {
 
   router.get('/api/auth/me', session, ctx => ({ merchant: publicMerchant(ctx.merchant) }));
 
-  router.patch('/api/account', session, async ctx => {
+  router.patch('/api/account', session, writable, async ctx => {
     const b = await readJson(ctx.req);
     const m = ctx.merchant;
     const next = { name: m.name, allowed_origins: m.allowed_origins, return_cost: m.return_cost, widget: JSON.parse(m.widget) };
@@ -90,7 +94,7 @@ function register(router, { db, auth, services, config, limits }) {
     keys: db.all('SELECT id, kind, label, prefix, public_token, created_at, last_used_at, revoked_at FROM api_keys WHERE merchant_id = ? ORDER BY created_at DESC', ctx.merchant.id)
       .map(k => ({ ...k, key: k.public_token || null, public_token: undefined })),
   }));
-  router.post('/api/keys', session, async ctx => {
+  router.post('/api/keys', session, writable, async ctx => {
     const b = await readJson(ctx.req);
     if (!['public', 'secret'].includes(b.kind)) fail(400, 'invalid_kind', 'kind must be public or secret.');
     const label = validate.str(b.label, 40) ? b.label.trim() : b.kind === 'public' ? 'Storefront widget' : 'Server integration';
@@ -98,7 +102,7 @@ function register(router, { db, auth, services, config, limits }) {
     if (active >= 20) fail(400, 'too_many_keys', 'Revoke an unused key before creating another.');
     return { status: 201, body: { key: auth.createKey(ctx.merchant.id, b.kind, label) } };
   });
-  router.delete('/api/keys/:id', session, ctx => {
+  router.delete('/api/keys/:id', session, writable, ctx => {
     const r = db.run('UPDATE api_keys SET revoked_at = ? WHERE id = ? AND merchant_id = ? AND revoked_at IS NULL', Date.now(), ctx.params.id, ctx.merchant.id);
     if (!r.changes) fail(404, 'not_found', 'Key not found or already revoked.');
     return { ok: true };
@@ -109,23 +113,23 @@ function register(router, { db, auth, services, config, limits }) {
     products: services.products.list(ctx.merchant.id, { q: ctx.url.searchParams.get('q') || '', category: ctx.url.searchParams.get('category') || '' }),
     categories: engine.CATEGORIES, fits: engine.FITS,
   }));
-  router.post('/api/products', session, async ctx => {
+  router.post('/api/products', session, writable, async ctx => {
     const v = validate.product(await readJson(ctx.req));
     if (v.error) fail(400, 'invalid_product', v.error);
     if (services.products.get(ctx.merchant.id, v.value.sku)) fail(409, 'sku_taken', `A product with SKU ${v.value.sku} already exists.`);
     return { status: 201, body: { product: services.products.upsert(ctx.merchant.id, v.value).product } };
   });
-  router.put('/api/products/:sku', session, async ctx => {
+  router.put('/api/products/:sku', session, writable, async ctx => {
     if (!services.products.get(ctx.merchant.id, ctx.params.sku)) fail(404, 'not_found', 'Product not found.');
     const v = validate.product({ ...(await readJson(ctx.req)), sku: ctx.params.sku });
     if (v.error) fail(400, 'invalid_product', v.error);
     return { product: services.products.upsert(ctx.merchant.id, v.value).product };
   });
-  router.delete('/api/products/:sku', session, ctx => {
+  router.delete('/api/products/:sku', session, writable, ctx => {
     if (!services.products.remove(ctx.merchant.id, ctx.params.sku)) fail(404, 'not_found', 'Product not found.');
     return { ok: true };
   });
-  router.post('/api/products/import', session, async ctx => {
+  router.post('/api/products/import', session, writable, async ctx => {
     const b = await readJson(ctx.req, 5 * 1024 * 1024);
     const list = Array.isArray(b) ? b : b.products;
     if (!Array.isArray(list) || !list.length || list.length > 2000) fail(400, 'invalid_import', 'Send { "products": [...] } with 1–2000 products.');

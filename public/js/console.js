@@ -94,11 +94,12 @@ function shell() {
       <div class="me"><div class="avatar">${esc(m.name[0] || 'F').toUpperCase()}</div><div><b>${esc(m.name)}</b><small>${esc(m.email)} · ${esc(m.plan)}</small></div><button class="icon-btn" id="logout" title="Sign out" aria-label="Sign out">⏻</button></div>
     </aside>
     <div class="main">
-      <header class="top"><h1 id="title"></h1><span class="live"><i></i>Live</span><div class="seg" id="period"><button data-d="7">7d</button><button data-d="30">30d</button><button data-d="90">90d</button></div></header>
+      <header class="top"><h1 id="title"></h1><button class="icon-btn m-only" id="logout-m" title="Sign out" aria-label="Sign out">⏻</button><span class="live"><i></i>Live</span><div class="seg" id="period"><button data-d="7">7d</button><button data-d="30">30d</button><button data-d="90">90d</button></div></header>
       <div id="view"></div>
     </div>
     <nav class="mobile-nav">${nav('')}</nav>
   </div>`;
+  $('#logout-m').onclick = () => $('#logout').click();
   $('#logout').onclick = async () => { await api('/api/auth/logout', { method: 'POST' }).catch(() => {}); S.merchant = null; history.replaceState(null, '', '#'); authScreen('login'); };
   $('#period').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.days = Number(b.dataset.d); navPaint(); render(); };
   navPaint();
@@ -257,6 +258,8 @@ function editor(p, onSaved) {
     const g = GROUP_OF(cat);
     if (g === 'bottoms') return ['28', '30', '32', '34', '36'].map((s, i) => ({ size: s, waist: 74 + i * 5, hips: 94 + i * 5, inseam: 79 + i * 0.5 }));
     if (g === 'dresses') return ['XS', 'S', 'M', 'L', 'XL'].map((s, i) => ({ size: s, chest: 84 + i * 5, waist: 68 + i * 5, hips: 92 + i * 5, length: 115 + i }));
+    if (cat === 'Kurtas') return ['XS', 'S', 'M', 'L', 'XL'].map((s, i) => ({ size: s, chest: 88 + i * 6, waist: 84 + i * 6, shoulders: 36 + i * 1.5, length: 106 + i * 1.5 }));
+    if (cat === 'Shalwar Kameez') return ['S', 'M', 'L', 'XL', 'XXL'].map((s, i) => ({ size: s, chest: 104 + i * 6, waist: 100 + i * 6, shoulders: 45 + i * 1.5, length: 100 + i * 1.5 }));
     return ['XS', 'S', 'M', 'L', 'XL'].map((s, i) => ({ size: s, chest: 92 + i * 6, waist: 86 + i * 6, shoulders: 42 + i * 2, length: 67 + i }));
   };
   if (!st.rows) st.rows = defaults(st.category);
@@ -303,8 +306,9 @@ function editor(p, onSaved) {
     const f = Object.fromEntries(new FormData($('#ed-form')));
     const d = dims();
     const sku = f.sku.trim() || (isNew && f.name.trim() ? autoSku(f.name.trim()) : '');
-    return { sku, brand: f.brand, name: f.name, category: st.category, fit: f.fit, price: Number(f.price) || 0, description: f.description, color: st.color,
-      chart: st.rows.map(r => Object.fromEntries([['size', r.size], ...d.filter(k => r[k] !== '' && r[k] != null).map(k => [k, toCm(r[k])])])) };
+    const hidden = r => Object.fromEntries(Object.entries(r).filter(([k, v]) => k !== 'size' && !d.includes(k) && v != null && v !== ''));
+    return { sku, brand: f.brand, name: f.name, category: st.category, fit: f.fit, price: Number(f.price) || 0, description: f.description, color: st.color, image_url: p?.image_url || '',
+      chart: st.rows.map(r => ({ ...hidden(r), ...Object.fromEntries([['size', r.size], ...d.filter(k => r[k] !== '' && r[k] != null).map(k => [k, toCm(r[k])])]) })) };
   };
   const checkUnits = () => {
     const key = DIMS_FOR[GROUP_OF(st.category)][0];
@@ -388,7 +392,9 @@ function confirmModal(title, text, cta) {
   clearTimeout(layerTimer);
   return new Promise(resolve => {
     layer.innerHTML = `<div class="scrim"></div><div class="modal glass" role="alertdialog" aria-modal="true" aria-labelledby="cf-t"><h2 id="cf-t">${esc(title)}</h2><p>${esc(text)}</p><div class="foot"><button class="btn ghost" id="cf-no">Cancel</button><button class="btn danger" id="cf-yes">${esc(cta)}</button></div></div>`;
-    const done = v => { closeLayer(); resolve(v); };
+    const done = v => { document.removeEventListener('keydown', onEsc); closeLayer(); resolve(v); };
+    const onEsc = e => { if (e.key === 'Escape') done(false); };
+    document.addEventListener('keydown', onEsc);
     $('.scrim', layer).onclick = () => done(false); $('#cf-no').onclick = () => done(false); $('#cf-yes').onclick = () => done(true);
     $('#cf-no').focus();
   });
@@ -470,15 +476,15 @@ async function integration(my) {
   const drawSteps = k => { $('#plat-steps').innerHTML = STEPS[k].map(x => `<li>${x}</li>`).join(''); };
   drawSteps('shopify');
   $('#plat').onclick = e => { const b = e.target.closest('button'); if (!b) return; $$('#plat button').forEach(x => x.classList.toggle('on', x === b)); drawSteps(b.dataset.p); };
-  let wt;
-  const saveWidget = patch => { clearTimeout(wt); wt = setTimeout(async () => { try { S.merchant = (await api('/api/account', { method: 'PATCH', body: { widget: patch } })).merchant; toast('Widget style saved'); } catch (e) { toast(e.message, 'err'); } }, 500); };
+  let wt, pending = {};
+  const saveWidget = patch => { pending = { ...pending, ...patch }; clearTimeout(wt); wt = setTimeout(async () => { const body = pending; pending = {}; try { S.merchant = (await api('/api/account', { method: 'PATCH', body: { widget: body } })).merchant; toast('Widget style saved'); } catch (e) { toast(e.message, 'err'); } }, 500); };
   $('#acc').onclick = e => { const b = e.target.closest('button'); if (!b) return; $$('#acc button').forEach(x => x.classList.toggle('on', x === b)); $('#w-prev').style.setProperty('--a', b.dataset.c); saveWidget({ accent: b.dataset.c }); };
   $('#w-label').oninput = e => { $('#w-prev-l').textContent = e.target.value || ' '; if (e.target.value.trim()) saveWidget({ label: e.target.value }); };
   $('#keys').onclick = async e => {
     const c = e.target.closest('[data-copy]'), r = e.target.closest('[data-revoke]');
     if (c) copyText(c.dataset.copy);
     if (r && await confirmModal('Revoke this key?', 'Any site or server using it will stop working immediately. This cannot be undone.', 'Revoke key')) {
-      try { await api(`/api/keys/${r.dataset.revoke}`, { method: 'DELETE' }); toast('Key revoked'); integration(); } catch (err) { toast(err.message, 'err'); }
+      try { await api(`/api/keys/${r.dataset.revoke}`, { method: 'DELETE' }); toast('Key revoked'); render(); } catch (err) { toast(err.message, 'err'); }
     }
   };
   $$('[data-new]').forEach(b => b.onclick = async () => {
@@ -487,8 +493,8 @@ async function integration(my) {
       if (key.kind === 'secret') {
         layer.innerHTML = `<div class="scrim"></div><div class="modal glass" role="dialog" aria-modal="true" aria-labelledby="sk-t"><h2 id="sk-t">Your new secret key</h2><p>Copy it now and store it in your server's secrets manager. For your security, Forme will never show it again.</p><div class="secret-box"><span>${esc(key.key)}</span><button class="btn small" id="sk-copy">Copy</button></div><div class="foot"><button class="btn" id="sk-done">I've saved it</button></div></div>`;
         $('#sk-copy').onclick = () => copyText(key.key);
-        $('#sk-done').onclick = () => { closeLayer(); integration(); };
-      } else { toast('Publishable key created'); integration(); }
+        $('#sk-done').onclick = () => { closeLayer(); render(); };
+      } else { toast('Publishable key created'); render(); }
     } catch (err) { toast(err.message, 'err'); }
   });
   const origins = [...m.allowed_origins];
@@ -518,6 +524,7 @@ function settings() {
   $('#set-form').onsubmit = async e => {
     e.preventDefault();
     const f = Object.fromEntries(new FormData(e.target));
+    if (String(f.return_cost).trim() === '') return toast('Enter the average cost of one return (Rs).', 'err');
     try { S.merchant = (await api('/api/account', { method: 'PATCH', body: { name: f.name, return_cost: Number(f.return_cost) } })).merchant; toast('Settings saved'); shell(); }
     catch (err) { toast(err.message, 'err'); }
   };

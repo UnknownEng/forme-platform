@@ -87,3 +87,10 @@ test('signing out of the shared demo does not sign other visitors out', async ()
   await fetch(base + '/api/auth/logout', { method: 'POST', headers: { ...H, cookie: a } });
   assert.equal((await call('/api/auth/me', { headers: { cookie: b } })).status, 200);
 });
+
+test('feedback must name a size that exists on the product', async () => {
+  const bad = await fetch(base + '/v1/feedback', { method: 'POST', headers: bearer(sk), body: JSON.stringify({ sku: 'T1', size: 'ZZZ', outcome: 'kept' }) });
+  assert.equal(bad.status, 400);
+  const ok = await fetch(base + '/v1/feedback', { method: 'POST', headers: bearer(sk), body: JSON.stringify({ sku: 'T1', size: 'M', outcome: 'kept' }) });
+  assert.equal(ok.status, 201);
+});

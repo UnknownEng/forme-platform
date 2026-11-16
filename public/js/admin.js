@@ -48,8 +48,9 @@ function shell() {
     <div class="side-label">PLATFORM</div>${nav}<div class="side-spacer"></div>
     <div class="side-card"><b>Owner session</b>Signed in for 8 hours. Actions are audited.</div>
     <div class="me"><div class="avatar" style="background:linear-gradient(135deg,var(--coral),var(--violet))">A</div><div><b>Platform owner</b><small>forme admin</small></div><button class="icon-btn" id="logout" title="Sign out" aria-label="Sign out">⏻</button></div></aside>
-    <div class="main"><header class="top"><h1 id="title"></h1><span class="live"><i></i>Live</span><button class="btn ghost small" id="refresh">Refresh</button></header><div id="view"></div></div>
+    <div class="main"><header class="top"><h1 id="title"></h1><button class="icon-btn m-only" id="logout-m" title="Sign out" aria-label="Sign out">⏻</button><span class="live"><i></i>Live</span><button class="btn ghost small" id="refresh">Refresh</button></header><div id="view"></div></div>
     <nav class="mobile-nav">${nav}</nav></div>`;
+  $('#logout-m').onclick = () => $('#logout').click();
   $('#logout').onclick = async () => { await api('/api/admin/logout', { method: 'POST' }).catch(() => {}); login(); };
   $('#refresh').onclick = render;
   render();
@@ -138,6 +139,8 @@ async function merchantDrawer(id, onChange) {
     </div></aside>`;
   const refresh = () => { onChange?.(); merchantDrawer(id, onChange); };
   $('.scrim', layer).onclick = closeLayer; $('#md-x').onclick = closeLayer;
+  const onEsc = e => { if (e.key === 'Escape' && !$('.modal', layer)) { closeLayer(); document.removeEventListener('keydown', onEsc); } };
+  document.addEventListener('keydown', onEsc);
   $('#md-plan').onchange = async e => { try { await api(`/api/admin/merchants/${id}`, { method: 'PATCH', body: { plan: e.target.value } }); toast(`Plan set to ${e.target.value}`); onChange?.(); } catch (err) { toast(err.message, 'err'); } };
   $('#md-imp').onclick = async () => {
     if (!await confirmBox('Open their console?', `You'll be signed in to ${m.name}'s console for one hour. This is recorded in the audit log.`, 'Open console')) return;
@@ -163,7 +166,7 @@ async function merchantDrawer(id, onChange) {
 /* ---------- Engine playground ---------- */
 async function engine() {
   const { products } = await api('/api/admin/products');
-  const P = { height: 175, weight: 72, chest: '', waist: '', hips: '', inseam: '', fit: 'Regular', build: 'Average' };
+  const P = { height: 175, weight: 72, chest: '', waist: '', hips: '', inseam: '', fit: 'Regular', build: 'Average', sex: '' };
   $('#view').innerHTML = `<p class="muted" style="margin:0 0 16px;max-width:800px">Run the fit engine directly against any product in the platform. Nothing here is logged or counted in merchant analytics.</p>
   <div class="engine"><section class="card glass"><div class="form-grid">
     <div class="field"><label for="ep">Product</label><select class="select" id="ep">${products.map(p => `<option value="${esc(p.merchant_id)}|${esc(p.sku)}">${esc(p.merchant)} · ${esc(p.name)} (${esc(p.sku)})</option>`).join('')}</select></div>
@@ -171,6 +174,7 @@ async function engine() {
       <div class="mini-slider"><div><span>Weight</span><b class="mono"><span id="v-w">72</span> kg</b></div><input type="range" id="e-w" min="35" max="150" value="72" aria-label="Weight"></div></div>
     <div class="form-2">${['chest', 'waist', 'hips', 'inseam'].map(x => `<div class="field"><label for="e-${x}">${x[0].toUpperCase() + x.slice(1)} (cm, optional)</label><input class="input mono" id="e-${x}" type="number" placeholder="estimate"></div>`).join('')}</div>
     <div class="form-2"><div class="field"><span class="label">Fit preference</span><div class="seg" id="e-fit">${['Slim', 'Regular', 'Relaxed'].map(f => `<button type="button" data-v="${f}" class="${f === 'Regular' ? 'on' : ''}">${f}</button>`).join('')}</div></div>
+      <div class="field"><span class="label">Sizing</span><div class="seg" id="e-sex"><button type="button" data-v="" class="on">Not set</button><button type="button" data-v="female">Women's</button><button type="button" data-v="male">Men's</button></div></div>
       <div class="field"><span class="label">Build</span><div class="seg" id="e-build">${['Slim', 'Average', 'Broad'].map(f => `<button type="button" data-v="${f}" class="${f === 'Average' ? 'on' : ''}">${f}</button>`).join('')}</div></div></div>
     <label style="display:flex;gap:10px;align-items:center;font-size:14px"><input type="checkbox" id="e-nofb"> Ignore return-feedback calibration</label>
   </div></section>
@@ -185,6 +189,7 @@ async function engine() {
       const my = ++seq;
       const [merchant_id, sku] = $('#ep').value.split('|');
       const profile = { height: P.height, weight: P.weight, fit: P.fit, build: P.build };
+      if (P.sex) profile.sex = P.sex;
       for (const x of ['chest', 'waist', 'hips', 'inseam']) if (P[x]) profile[x] = Number(P[x]);
       try {
         const d = await api('/api/admin/engine/run', { method: 'POST', body: { merchant_id, sku, profile, ignore_feedback: $('#e-nofb').checked } });
@@ -203,7 +208,7 @@ async function engine() {
   };
   for (const [id, key] of [['e-h', 'height'], ['e-w', 'weight']]) $('#' + id).oninput = e => { P[key] = Number(e.target.value); $(id === 'e-h' ? '#v-h' : '#v-w').textContent = e.target.value; run(); };
   for (const x of ['chest', 'waist', 'hips', 'inseam']) $('#e-' + x).oninput = e => { P[x] = e.target.value; run(); };
-  for (const [id, key] of [['e-fit', 'fit'], ['e-build', 'build']]) $('#' + id).onclick = e => { const b = e.target.closest('button'); if (!b) return; P[key] = b.dataset.v; $$(`#${id} button`).forEach(x => x.classList.toggle('on', x === b)); run(); };
+  for (const [id, key] of [['e-fit', 'fit'], ['e-build', 'build'], ['e-sex', 'sex']]) $('#' + id).onclick = e => { const b = e.target.closest('button'); if (!b) return; P[key] = b.dataset.v; $$(`#${id} button`).forEach(x => x.classList.toggle('on', x === b)); run(); };
   $('#ep').onchange = run; $('#e-nofb').onchange = run;
   if (products.length) run(); else $('#e-label').textContent = 'No products on the platform yet';
 }

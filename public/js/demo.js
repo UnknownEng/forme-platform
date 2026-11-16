@@ -61,7 +61,8 @@ async function listingSizes(items) {
 function pdp(sku) {
   const p = products.find(x => x.sku === sku);
   if (!p) { $('#view').innerHTML = '<p class="empty">Product not found. <a href="#/">Back to shop</a></p>'; return; }
-  const sizes = SIZES[p.category].split(' ');
+  // The product's own size labels; the table is only a fallback.
+  const sizes = p.sizes?.length ? p.sizes : (SIZES[p.category] || 'S M L').split(' ');
   let selected = null, recId = null, recommended = window.Forme?.lastRecommendation?.(sku)?.size || null;
   $('#view').innerHTML = `<a class="back" href="#/">← Back to shop</a><div class="pdp">${artBox(p.category, p.color)}<div>
     <div class="crumb">Northline · ${esc(p.category)} · ${esc(p.fit)} fit</div>

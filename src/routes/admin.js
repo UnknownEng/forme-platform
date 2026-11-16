@@ -96,7 +96,7 @@ function register(router, { db, auth, services, config, limits }) {
           (SELECT COUNT(*) FROM recommendations r WHERE r.merchant_id = m.id AND r.created_at >= ?) AS recs_30d,
           (SELECT MAX(created_at) FROM events e WHERE e.merchant_id = m.id) AS last_event,
           (SELECT COUNT(*) FROM api_keys k WHERE k.merchant_id = m.id AND k.revoked_at IS NULL) AS keys
-        FROM merchants m WHERE (? = '' OR lower(m.name || ' ' || m.email) LIKE ?) ORDER BY m.created_at DESC LIMIT 500`, Date.now() - 30 * DAY, q, `%${q}%`)
+        FROM merchants m WHERE (? = '' OR lower(m.name || ' ' || m.email) LIKE ? ESCAPE '\\') ORDER BY m.created_at DESC LIMIT 500`, Date.now() - 30 * DAY, q, `%${q.replace(/[\\%_]/g, c => '\\' + c)}%`)
         .map(m => ({ ...m, allowed_origins: JSON.parse(m.allowed_origins) })),
       plans: PLANS,
     };
