@@ -18,9 +18,11 @@ function register(router, { db, services, config, limits, selfOrigin }) {
     const origin = ctx.req.headers.origin;
     const own = origin && origin === selfOrigin(ctx.req);
     if (key.kind === 'secret' && origin && !own) fail(403, 'secret_key_in_browser', 'Secret keys must only be used from your server. Use a pk_live_ key in the browser.');
-    if (key.kind === 'public' && origin && !own) {
+    if (key.kind === 'public' && !own) {
+      // Once a brand locks its publishable key to its sites, requests without an Origin
+      // (scripts, servers) are refused too, so the lock cannot be skipped by omitting it.
       const allowed = JSON.parse(key.allowed_origins);
-      if (allowed.length && !allowed.includes(origin)) fail(403, 'origin_not_allowed', `${origin} is not in this account's allowed origins.`);
+      if (allowed.length && (!origin || !allowed.includes(origin))) fail(403, 'origin_not_allowed', `${origin || 'A request without an Origin header'} is not in this account's allowed origins.`);
     }
     const r = limits.api(key.key_id);
     ctx.res.extraHeaders = { ...ctx.res.extraHeaders, 'X-RateLimit-Remaining': String(r.remaining) };
@@ -79,6 +81,8 @@ function register(router, { db, services, config, limits, selfOrigin }) {
   });
 
   router.post('/v1/profiles', any, async ctx => {
+    // A real shopper creates one profile; cap creation per visitor to stop table flooding.
+    if (!limits.profiles(`${ctx.merchant.id}:${ctx.ip}`).ok) fail(429, 'rate_limited', 'Too many profiles created from this device. Try again later.');
     const v = validate.profile(await readJson(ctx.req));
     if (v.error) fail(400, 'invalid_profile', v.error);
     const raw = token('fp', 24);
@@ -111,8 +115,33 @@ function register(router, { db, services, config, limits, selfOrigin }) {
     const b = await readJson(ctx.req, 16 * 1024);
     if (!EVENT_TYPES.includes(b.type)) fail(400, 'invalid_event', `type must be one of: ${EVENT_TYPES.join(', ')}`);
     if (b.value != null && !validate.num(b.value, 0, 10_000_000)) fail(400, 'invalid_event', 'value must be a positive number.');
-    const str = (v, n) => (typeof v === 'string' ? v.slice(0, n) : null);
-    services.track(ctx.merchant.id, { type: b.type, sku: str(b.sku, 64), rec_id: str(b.rec_id, 40), size: str(b.size, 10), value: b.value ?? null });
+    // Events must name a real product, and a real recommendation if they cite one,
+    // so nobody can scribble fake products or IDs into a brand's activity feed.
+    let product = null;
+    if (b.sku != null) {
+      product = typeof b.sku === 'string' ? services.products.get(ctx.merchant.id, b.sku) : null;
+      if (!product) fail(400, 'invalid_event', 'sku must be a product in your catalog.');
+    }
+    if (b.size != null && !(typeof b.size === 'string' && /^[A-Za-z0-9 ./+-]{1,10}$/.test(b.size))) fail(400, 'invalid_event', 'size must be a short size label.');
+    const rec = b.rec_id != null
+      ? (typeof b.rec_id === 'string' && db.get('SELECT id, sku FROM recommendations WHERE id = ? AND merchant_id = ?', b.rec_id, ctx.merchant.id))
+      : null;
+    if (b.rec_id != null && !rec) fail(400, 'invalid_event', 'rec_id does not match a recommendation for this account.');
+    if (rec && product && rec.sku !== product.sku) fail(400, 'invalid_event', 'rec_id belongs to a different product.');
+    let value = b.value ?? null;
+    if (b.type === 'purchase') {
+      if (!product) fail(400, 'invalid_event', 'purchase events need a sku.');
+      if (ctx.keyKind === 'public') {
+        // Browser-reported purchases are a hint, not a receipt: they must cite a real
+        // recommendation for that product, count once per recommendation, and cannot
+        // claim more than a few units of the catalog price. Send purchases from your
+        // server with a secret key for billing-grade numbers.
+        if (!rec) fail(400, 'invalid_event', 'Browser purchase events must include the rec_id of a recommendation for this product. Report other purchases from your server with a secret key.');
+        if (db.get("SELECT 1 FROM events WHERE merchant_id = ? AND type = 'purchase' AND rec_id = ?", ctx.merchant.id, rec.id)) return { status: 202, body: { accepted: true, duplicate: true } };
+        value = Math.min(Number(value ?? product.price), product.price * 5);
+      }
+    }
+    services.track(ctx.merchant.id, { type: b.type, sku: product?.sku ?? null, rec_id: rec?.id ?? null, size: b.size ?? null, value });
     return { status: 202, body: { accepted: true } };
   });
 

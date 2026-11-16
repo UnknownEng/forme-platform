@@ -27,8 +27,11 @@ function createAuth(db, { sessionTtlMs, secret }) {
   // Sessions are signed tokens (merchant id + expiry + HMAC), so any server
   // instance holding the same secret can verify them without shared storage.
   const sign = payload => crypto.createHmac('sha256', secret).update(payload).digest('base64url');
+  // The merchant's session_epoch is part of every token. Signing out bumps it, which
+  // invalidates every token issued before (on hosts with shared storage).
   function createSession(merchantId) {
-    const payload = `${merchantId}.${Date.now() + sessionTtlMs}`;
+    const epoch = db.get('SELECT session_epoch FROM merchants WHERE id = ?', merchantId)?.session_epoch ?? 0;
+    const payload = `${merchantId}.${epoch}.${Date.now() + sessionTtlMs}`;
     return `${payload}.${sign(payload)}`;
   }
   function sessionMerchant(raw) {
@@ -38,12 +41,18 @@ function createAuth(db, { sessionTtlMs, secret }) {
     const payload = raw.slice(0, i), mac = raw.slice(i + 1);
     const expected = sign(payload);
     if (mac.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(mac), Buffer.from(expected))) return null;
-    const [merchantId, exp] = payload.split('.');
+    const [merchantId, epoch, exp] = payload.split('.');
     if (!(Number(exp) > Date.now())) return null;
-    return db.get('SELECT * FROM merchants WHERE id = ? AND suspended_at IS NULL', merchantId) || null;
+    const m = db.get('SELECT * FROM merchants WHERE id = ? AND suspended_at IS NULL', merchantId);
+    return m && String(m.session_epoch ?? 0) === epoch ? m : null;
   }
-  // Signing out clears the cookie in the browser (see the logout route).
-  function destroySession() {}
+  function destroySession(raw) {
+    const m = sessionMerchant(raw);
+    // The public demo workspace is shared by every visitor; one person signing out
+    // must not sign everyone else out.
+    const demoId = db.get("SELECT value FROM meta WHERE key = 'demo_seeded'")?.value;
+    if (m && m.id !== demoId) db.run('UPDATE merchants SET session_epoch = session_epoch + 1 WHERE id = ?', m.id);
+  }
 
   // Public keys (pk_) are meant to sit in browser code, like a Stripe publishable
   // key, so we keep them readable for the install snippet. Secret keys (sk_) are

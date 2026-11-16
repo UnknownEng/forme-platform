@@ -27,6 +27,7 @@ function createApp(overrides = {}) {
     auth: rateLimiter({ windowMs: 60_000, max: 12 }),
     api: rateLimiter({ windowMs: 60_000, max: 600 }),
     ip: rateLimiter({ windowMs: 60_000, max: 1200 }),
+    profiles: rateLimiter({ windowMs: 60 * 60_000, max: 20 }),
   };
   const selfOrigin = req => `${cfg.SECURE_COOKIES ? 'https' : 'http'}://${req.headers.host}`;
   const router = createRouter();
@@ -48,8 +49,14 @@ function createApp(overrides = {}) {
     const started = Date.now();
     const url = new URL(req.url, 'http://localhost');
     const isApi = url.pathname.startsWith('/v1/') || url.pathname.startsWith('/api/');
-    // Behind Vercel's proxy the client address is the first X-Forwarded-For entry.
-    const ip = (cfg.TRUST_PROXY && String(req.headers['x-forwarded-for'] || '').split(',')[0].trim()) || req.socket?.remoteAddress || 'unknown';
+    // Behind a trusted proxy, use the address the proxy itself saw. Clients can put
+    // anything at the start of X-Forwarded-For, so only the last hop (or Vercel's
+    // x-real-ip, which it sets itself) is trusted.
+    let ip = req.socket?.remoteAddress || 'unknown';
+    if (cfg.TRUST_PROXY) {
+      const hops = String(req.headers['x-forwarded-for'] || '').split(',').map(s => s.trim()).filter(Boolean);
+      ip = String(req.headers['x-real-ip'] || '').trim() || hops[hops.length - 1] || ip;
+    }
     res.extraHeaders = {};
 
     if (url.pathname.startsWith('/v1/')) {

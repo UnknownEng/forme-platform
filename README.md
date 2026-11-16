@@ -10,6 +10,8 @@ Forme gives every shopper one portable fit profile and recommends the right size
 | Widget | `/widget.js` | One script tag + `<div data-forme-sku>`; shadow-DOM isolated, works on any storefront |
 | REST API | `/v1/*` | Recommend, batch recommend, profiles, events, feedback, catalog sync |
 | API docs | `/docs`, `/openapi.json` | Rendered reference + OpenAPI 3.1 spec |
+| Admin panel | `/admin` | Owner-only: every merchant, suspend/plan/delete, support sign-in, engine playground, live activity, audit log, health checks |
+| Privacy | `/privacy` | Plain-language privacy summary linked from the widget |
 
 ## Live
 
@@ -19,7 +21,7 @@ Forme gives every shopper one portable fit profile and recommends the right size
 - API docs: https://forme-platform.vercel.app/docs
 
 ### Deploying on Vercel
-Import the repo on Vercel and add one environment variable, **`FORME_SECRET`** (any long random string). It signs console logins so they work on every serverless instance. Vercel functions have no permanent disk: the demo workspace is rebuilt identically on each instance, but new sign-ups and live events are not kept. Move to Postgres before onboarding real customers.
+Import the repo on Vercel and add two environment variables: **`FORME_SECRET`** (any long random string) and **`FORME_ADMIN_PASSWORD`** (12+ characters, unlocks /admin). `FORME_SECRET` signs logins so they work on every serverless instance. Vercel functions have no permanent disk: the demo workspace is rebuilt identically on each instance, but new sign-ups and live events are not kept. Move to Postgres before onboarding real customers.
 
 ## Videos
 
@@ -48,6 +50,8 @@ Open http://127.0.0.1:4173. On first start a demo workspace is created with 10 p
 npm test        # 18 engine + API tests against a temporary database
 npm run dev     # restart on file changes
 ```
+
+Admin panel: locally, a password is generated on first start and saved to `data/admin-password.txt` (git-ignored); set `FORME_ADMIN_PASSWORD` to choose your own.
 
 Environment variables: `PORT` (default 4173), `HOST` (default 127.0.0.1), `FORME_DATA_DIR` (default `./data`), `FORME_SEED=0` (skip the demo workspace), `FORME_SECURE_COOKIES=1` (behind HTTPS), `FORME_LOG=0` (quiet request log).
 

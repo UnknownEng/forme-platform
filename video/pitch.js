@@ -8,22 +8,22 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { launch, sleep, OUT } = require('./lib');
 
-const URL_TEXT = process.argv[2] || 'github.com/UnknownEng/forme-platform';
+const URL_TEXT = process.argv[2] || 'forme-platform.vercel.app';
 const FPS = 30;
 const VOICE = process.env.FORME_VOICE || 'Microsoft Zira Desktop';
 
 const NARRATION = [
-  'Every day, millions of shoppers buy clothes online in the wrong size. This is Forme: fit intelligence for fashion platforms.',
-  'Online fashion has the highest return rates in e-commerce. Industry estimates put apparel returns at thirty to forty percent, and the number one reason is size and fit.',
-  'Every one of those returns costs a reverse pickup, handling and restocking, a refund, and often the shopper\'s trust.',
-  'Forme removes the guesswork. A shopper answers three quick questions once, and gets their size on every product, in every store on the Forme network.',
-  'Retailers sync their size charts. Our engine compares each shopper\'s body and fit preference with the garment\'s own measurements, and returns a size, a confidence score, and fit notes for every area.',
-  'It ships as a one line widget, a REST API, and a merchant console with live analytics.',
-  'And it learns. Every keep or return feeds back into the engine, so products that run small or large are corrected automatically.',
-  'For a platform shipping two hundred and fifty thousand apparel orders a month, preventing a quarter of size returns is worth around four point seven crore rupees a year.',
-  'Brands start free, growing brands pay per recommendation, and large platforms pay a share of measured savings. We win when our customers win.',
-  'Our edge: sizing built for how India shops, including ethnic wear. A profile that travels between stores. Integration in an afternoon. And a model that learns from every return.',
-  'Let\'s run a pilot. One category, four to eight weeks, and a measured drop in size returns. Forme. The right size, the first time.',
+  "Every day, shoppers across Pakistan order clothes online, and then the size is wrong. This is Forme: fit tech for Pakistan's fashion brands.",
+  "Clothing has the highest return rates in online shopping, often thirty to forty percent, and size is the number one reason. In Pakistan it is worse, because most orders are cash on delivery, and a size doubt at the door becomes a refused parcel.",
+  "Every one of those parcels costs a courier trip out and back, handling and restocking, a lost sale, and the shopper's trust.",
+  "Forme removes the guesswork. A shopper answers three quick questions: height, weight, and how they like their clothes to fit. Then they get their size on every product, from lawn kurtas to denim.",
+  "Brands sync their size charts. Our engine compares the shopper with each garment's own measurements, and returns a size, a confidence score, and fit notes for every area. And it is honest when it is only estimating.",
+  "It ships as a one line widget, a REST API, a merchant console with live analytics, and an admin panel to run the whole platform.",
+  "And it learns. Every keep, return or refusal feeds back into the engine, so products that run small or large are corrected automatically.",
+  "Even a cautious ten percent drop in size returns adds up. For a brand shipping fifty thousand orders a month, that is about thirty lakh rupees a year in courier and handling costs alone.",
+  "Brands start free. Growing brands pay nine thousand nine hundred and ninety nine rupees a month, and large brands pay a share of the savings we can measure.",
+  "Our edge: sizing built for how Pakistan shops, from kurtas to shalwar kameez. Built to cut refused parcels. Live in an afternoon. And a model that learns from every return.",
+  "Let's run a pilot. One category, four to eight weeks, free for pilot brands, with the results measured together. Forme. The right size, the first time."
 ];
 
 const sh = (cmd, args) => execFileSync(cmd, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
@@ -42,10 +42,11 @@ async function screenshots(context) {
   await page.goto(base + '/', { waitUntil: 'networkidle' }); await sleep(3500);
   out.landing = await shot({});
 
-  await page.goto(base + '/demo#/p/NL-TEE-01', { waitUntil: 'networkidle' }); await sleep(800);
+  await page.goto(base + '/demo#/p/NL-KRT-11', { waitUntil: 'networkidle' }); await sleep(800);
   await page.locator('[data-forme-sku] >> .trigger').click(); await sleep(700);
-  await page.locator('[data-forme-panel] >> input[name=height]').fill('178');
-  await page.locator('[data-forme-panel] >> input[name=weight]').fill('76');
+  await page.locator('[data-forme-panel] >> input[name=height]').fill('160');
+  await page.locator('[data-forme-panel] >> input[name=weight]').fill('55');
+  await page.locator('[data-forme-panel] >> .card[data-v=female]').click();
   await page.locator('[data-forme-panel] >> .foot .btn').click(); await sleep(500);
   await page.locator('[data-forme-panel] >> .foot .btn:not(.ghost)').click(); await sleep(3000);
   out.widget = await shot({ clip: { x: 1480, y: 64, width: 440, height: 680 } });

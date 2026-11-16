@@ -111,6 +111,7 @@ function open(dataDir) {
   // Lightweight migrations for databases created by earlier versions.
   const cols = db.prepare('PRAGMA table_info(merchants)').all().map(c => c.name);
   if (!cols.includes('suspended_at')) db.exec('ALTER TABLE merchants ADD COLUMN suspended_at INTEGER');
+  if (!cols.includes('session_epoch')) db.exec('ALTER TABLE merchants ADD COLUMN session_epoch INTEGER NOT NULL DEFAULT 0');
   db.exec("UPDATE merchants SET currency = 'PKR' WHERE currency = 'INR'");
 
   const cache = new Map();
