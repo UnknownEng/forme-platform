@@ -466,7 +466,7 @@
       (guessed.length ? '<p class="hint">' + esc(t('guessed', { a: guessed.join(', ') })) + '</p>' : '') +
       '<div class="lbl" style="margin-top:6px">' + esc(t('choose')) + '</div><div class="sizes" role="radiogroup" aria-label="' + esc(t('choose')) + '"></div><div class="chart"></div>' +
       '<div class="small">' + (state.forOther ? '' : '<button class="link" data-act="edit">' + esc(t('edit')) + '</button> · <button class="link" data-act="forget">' + esc(t('forget')) + '</button> · ') +
-      '<a class="link" href="' + API + '/privacy" target="_blank" rel="noopener">' + esc(t('privacy')) + '</a></div></div>',
+      '<a class="link" href="' + API + '/privacy" target="_blank" rel="noopener">' + esc(t('privacy')) + '</a><br>Forme · Made by Maverick Technologies</div></div>',
       '<button class="btn">' + esc(t('select', { s: r.size })) + '</button>')) return;
     requestAnimationFrame(function () { requestAnimationFrame(function () { var fg = $('.fg'); if (fg) fg.style.strokeDashoffset = fg.getAttribute('data-to'); }); });
     var my = gen;

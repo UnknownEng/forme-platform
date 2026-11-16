@@ -90,7 +90,7 @@ function shell() {
       <div class="side-label">WORKSPACE</div>
       ${nav('')}
       <div class="side-spacer"></div>
-      <div class="side-card" id="side-card">${m.email === 'demo@forme.dev' ? '<b>See it live</b>Open the demo store, pick a size, and watch events arrive here. <a href="/demo" target="_blank" rel="noopener">Open store ↗</a>' : '<b>Get started</b><a href="#catalog">1. Add a product</a><br><a href="#integration">2. Install on your store</a><br>3. See your first shopper here'}</div>
+      <div class="made-by" style="padding:0 10px 10px">Made by <b class="maverick">Maverick Technologies</b></div><div class="side-card" id="side-card">${m.email === 'demo@forme.dev' ? '<b>See it live</b>Open the demo store, pick a size, and watch events arrive here. <a href="/demo" target="_blank" rel="noopener">Open store ↗</a>' : '<b>Get started</b><a href="#catalog">1. Add a product</a><br><a href="#integration">2. Install on your store</a><br>3. See your first shopper here'}</div>
       <div class="me"><div class="avatar">${esc(m.name[0] || 'F').toUpperCase()}</div><div><b>${esc(m.name)}</b><small>${esc(m.email)} · ${esc(m.plan)}</small></div><button class="icon-btn" id="logout" title="Sign out" aria-label="Sign out">⏻</button></div>
     </aside>
     <div class="main">

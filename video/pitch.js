@@ -18,12 +18,11 @@ const NARRATION = [
   "Every one of those parcels costs a courier trip out and back, handling and restocking, a lost sale, and the shopper's trust.",
   "Forme removes the guesswork. A shopper answers three quick questions: height, weight, and how they like their clothes to fit. Then they get their size on every product, from lawn kurtas to denim.",
   "Brands sync their size charts. Our engine compares the shopper with each garment's own measurements, and returns a size, a confidence score, and fit notes for every area. And it is honest when it is only estimating.",
-  "It ships as a one line widget, a REST API, a merchant console with live analytics, and an admin panel to run the whole platform.",
+  "It is a complete platform: a size finder on every product page, a brand console with live analytics, and an admin panel to run it all.",
   "And it learns. Every keep, return or refusal feeds back into the engine, so products that run small or large are corrected automatically.",
-  "Even a cautious ten percent drop in size returns adds up. For a brand shipping fifty thousand orders a month, that is about thirty lakh rupees a year in courier and handling costs alone.",
   "Brands start free. Growing brands pay nine thousand nine hundred and ninety nine rupees a month, and large brands pay a share of the savings we can measure.",
-  "Our edge: sizing built for how Pakistan shops, from kurtas to shalwar kameez. Built to cut refused parcels. Live in an afternoon. And a model that learns from every return.",
-  "Let's run a pilot. One category, four to eight weeks, free for pilot brands, with the results measured together. Forme. The right size, the first time."
+  "Our edge: sizing built for how Pakistan shops, from kurtas to shalwar kameez. Built to cut refused parcels. Live in a day, on Shopify, WooCommerce or any store. And a model that learns from every return.",
+  "Let's run a pilot. One category, four to eight weeks, free for pilot brands, with the results measured together. Forme. The right size, the first time. Made by Maverick Technologies."
 ];
 
 const sh = (cmd, args) => execFileSync(cmd, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });

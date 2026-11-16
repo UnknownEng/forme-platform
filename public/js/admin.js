@@ -46,7 +46,7 @@ function shell() {
   const nav = VIEWS.map(([k, i, l]) => `<a class="nav-item" data-v="${k}" href="#${k}"><i>${i}</i>${l}</a>`).join('');
   root.innerHTML = `<div class="shell"><aside class="side"><a href="/" class="logo"><span class="logo-mark"><span>f</span></span>forme</a><span class="admin-badge">ADMIN</span>
     <div class="side-label">PLATFORM</div>${nav}<div class="side-spacer"></div>
-    <div class="side-card"><b>Owner session</b>Signed in for 8 hours. Actions are audited.</div>
+    <div class="made-by" style="padding:0 10px 10px">Made by <b class="maverick">Maverick Technologies</b></div><div class="side-card"><b>Owner session</b>Signed in for 8 hours. Actions are audited.</div>
     <div class="me"><div class="avatar" style="background:linear-gradient(135deg,var(--coral),var(--violet))">A</div><div><b>Platform owner</b><small>forme admin</small></div><button class="icon-btn" id="logout" title="Sign out" aria-label="Sign out">⏻</button></div></aside>
     <div class="main"><header class="top"><h1 id="title"></h1><button class="icon-btn m-only" id="logout-m" title="Sign out" aria-label="Sign out">⏻</button><span class="live"><i></i>Live</span><button class="btn ghost small" id="refresh">Refresh</button></header><div id="view"></div></div>
     <nav class="mobile-nav">${nav}</nav></div>`;

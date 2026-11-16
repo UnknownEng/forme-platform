@@ -2,6 +2,7 @@
   "name": "forme-fit-platform",
   "version": "1.0.0",
   "private": true,
+  "author": "Maverick Technologies",
   "description": "Forme: fit intelligence platform for fashion retailers. Size API, embeddable widget, merchant console and analytics.",
   "scripts": {
     "start": "node server.js",

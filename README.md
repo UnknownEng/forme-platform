@@ -1,5 +1,7 @@
 # Forme: fit intelligence for fashion platforms
 
+Made by **Maverick Technologies**.
+
 Forme gives every shopper one portable fit profile and recommends the right size for every product in a retailer's catalog. It ships as:
 
 | Piece | Where | What it is |

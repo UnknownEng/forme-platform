@@ -46,7 +46,7 @@ function encodeFrames(frames, dir, outFile, { audio = null, width = 1920, height
   fs.writeFileSync(list, lines.join('\n'));
   const args = ['-y', '-f', 'concat', '-safe', '0', '-i', list];
   if (audio) args.push('-i', audio);
-  args.push('-vf', `scale=${width}:${height}:flags=lanczos,fps=30,format=yuv420p`, '-c:v', 'libx264', '-preset', 'slow', '-crf', '20', '-movflags', '+faststart');
+  args.push('-vf', `scale=${width}:${height}:flags=lanczos,fps=30,format=yuv420p`, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-movflags', '+faststart');
   if (audio) args.push('-c:a', 'aac', '-b:a', '192k', '-shortest');
   args.push(outFile);
   execFileSync('ffmpeg', args, { stdio: ['ignore', 'ignore', 'pipe'] });

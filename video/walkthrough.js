@@ -40,42 +40,42 @@ async function startLocal() {
   const rec = await screencast(page, path.join(OUT, 'walk-frames'));
 
   // 1. Landing
-  await cap('<b>Forme</b>: fit intelligence for fashion platforms', 300);
+  await cap('<b>Forme</b>: fit tech for Pakistan\'s fashion brands', 300);
   for (const [x, y] of [[1300, 400], [1500, 650], [1150, 500], [1400, 300]]) await glide(x, y, 40);
   await sleep(1200);
-  await cap('One fit profile. The right size for every product. <b>Fewer returns.</b>', 2600);
-  await scrollTo('.problem', 60); await cap('Size and fit are the biggest reason clothes get sent back', 3200);
+  await cap('Three questions. The right size on every product. <b>Fewer returns.</b>', 2600);
+  await scrollTo('.problem', 60); await cap('A size doubt at the door becomes a refused COD parcel', 3200);
   await scrollTo('#how', 60); await cap('Sync size charts, ask three questions, learn from every return', 3400);
   await scrollTo('#demo', 60); await cap('The live engine, answering real API calls', 1500);
   await dragSlider('#height', 0.55, 0.85); await sleep(700);
   await dragSlider('#weight', 0.35, 0.6); await sleep(700);
   await page.locator('#fit button[data-v="Relaxed"]').click(); await sleep(900);
-  await page.locator('#prod-pick button').nth(3).click(); await cap('Tops, bottoms and dresses, each with its own size logic', 2200);
-  await scrollTo('#roi', 60); await cap('Retailers see what fewer size returns are worth to them', 1200);
-  await dragSlider('#roi-form input[name=orders]', 0.12, 0.3); await sleep(1600);
-  await scrollTo('.features', 60, 1200); await cap('Portable profiles, self-learning fit, enterprise-grade keys', 3000);
-  await scrollTo('#developers', 60, 1200); await cap('Live in an afternoon: one script tag or a REST call', 3600);
-  await scrollTo('#pricing', 60, 1200); await cap('Priced on outcomes, not seats', 2600);
+  await page.locator('#prod-pick button').nth(1).click(); await cap('Kurtas, shalwar kameez, denim: each with its own size logic', 2400);
+  await scrollTo('.features', 60, 1200); await cap('One platform: size finder, brand console, learning from every return', 3200);
+  await scrollTo('#pricing', 60, 1200); await cap('Free to start, simple monthly plans', 2600);
 
   // 2. Demo store + widget
   await cap('');
   await page.goto(base + '/demo#/', { waitUntil: 'networkidle' });
   await cap('A retailer storefront with the Forme widget installed', 1800);
   await glide(700, 600); await sleep(400);
-  await page.locator('.card').first().click(); await sleep(1200);
+  await page.goto(base + '/demo#/p/NL-KRT-11', { waitUntil: 'networkidle' }); await sleep(1200);
   await cap('Shoppers tap <b>Find my size</b> on any product page', 1200);
   const trig = page.locator('[data-forme-sku] >> .trigger');
   const tb = await trig.boundingBox(); await glide(tb.x + tb.width / 2, tb.y + tb.height / 2); await sleep(300); await trig.click();
   await sleep(900);
-  await cap('Two numbers to start: height and weight', 600);
-  const h = page.locator('[data-forme-panel] >> input[name=height]'); await h.click(); await page.keyboard.type('178', { delay: 120 });
-  const w = page.locator('[data-forme-panel] >> input[name=weight]'); await w.click(); await page.keyboard.type('76', { delay: 120 }); await sleep(600);
+  await cap('Height in feet and inches, and weight. That\'s it', 600);
+  const hf = page.locator('[data-forme-panel] >> input[name=hft]'); await hf.click(); await page.keyboard.type('5', { delay: 140 });
+  const hi = page.locator('[data-forme-panel] >> input[name=hin]'); await hi.click(); await page.keyboard.type('3', { delay: 140 });
+  const w = page.locator('[data-forme-panel] >> input[name=weight]'); await w.click(); await page.keyboard.type('55', { delay: 120 });
+  await page.locator('[data-forme-panel] >> .cards[data-name=sex] .card[data-v=female]').click(); await sleep(600);
   await page.locator('[data-forme-panel] >> .foot .btn').click(); await sleep(900);
   await cap('Then how they like clothes to fit', 600);
-  await page.locator('[data-forme-panel] >> .card[data-v="Regular"]').first().click(); await sleep(500);
+  await page.locator('[data-forme-panel] >> .cards[data-name=fit] .card[data-v="Regular"]').click(); await sleep(500);
   await page.locator('[data-forme-panel] >> .cards[data-name=build] .card[data-v="Average"]').click(); await sleep(500);
   await page.locator('[data-forme-panel] >> .foot .btn:not(.ghost)').click();
-  await sleep(1200); await cap('A size, a confidence score, and how it will fit each area', 3400);
+  await sleep(1400); await cap('A size, how likely it is to fit, and how each area will feel', 3200);
+  await page.locator('[data-forme-panel] >> .lang').click(); await cap('Also in Urdu', 2200); await page.locator('[data-forme-panel] >> .lang').click(); await sleep(600);
   await page.locator('[data-forme-panel] >> .foot .btn').click(); await sleep(1000);
   await cap('The chosen size flows straight into the store’s own size picker', 2000);
   await page.locator('#add').click(); await sleep(1600);
@@ -101,8 +101,8 @@ async function startLocal() {
   await page.locator('.side .nav-item[data-v=insights]').click(); await sleep(1400);
   await cap('Forme learns which products run small or large from real returns', 3600);
   await page.locator('.side .nav-item[data-v=integration]').click(); await sleep(1200);
-  await cap('Install snippet, widget styling, API keys and allowed origins', 3400);
-  await cap('<b>Forme</b>: the right size, the first time.', 3000);
+  await cap('Install steps for Shopify and WooCommerce, styling and keys', 3400);
+  await cap('<b>Forme</b>: the right size, the first time. Made by Maverick Technologies', 3400);
 
   const frames = await rec.stop();
   await browser.close();
