@@ -52,15 +52,18 @@ function createServices(db) {
     return out;
   }
 
-  async function recommend(merchantId, product, profile, profileId = null, { log = true } = {}) {
-    const result = engine.recommend(product, profile, await feedbackCounts(merchantId, product.sku));
+  async function recommend(merchantId, product, profile, profileId = null, { log = true, counts = null } = {}) {
+    const result = engine.recommend(product, profile, counts || await feedbackCounts(merchantId, product.sku));
     let recId = null;
     if (log) {
       recId = id('rec');
       const now = Date.now();
-      await db.run('INSERT INTO recommendations (id, merchant_id, sku, profile_id, size, confidence, engine, created_at) VALUES (?,?,?,?,?,?,?,?)',
-        recId, merchantId, product.sku, profileId, result.size, result.confidence, result.engine_version, now);
-      await db.run('INSERT INTO events (merchant_id, type, sku, rec_id, size, created_at) VALUES (?,?,?,?,?,?)', merchantId, 'recommendation', product.sku, recId, result.size, now);
+      // The two writes are independent, so they go out together.
+      await Promise.all([
+        db.run('INSERT INTO recommendations (id, merchant_id, sku, profile_id, size, confidence, engine, created_at) VALUES (?,?,?,?,?,?,?,?)',
+          recId, merchantId, product.sku, profileId, result.size, result.confidence, result.engine_version, now),
+        db.run('INSERT INTO events (merchant_id, type, sku, rec_id, size, created_at) VALUES (?,?,?,?,?,?)', merchantId, 'recommendation', product.sku, recId, result.size, now),
+      ]);
     }
     return { rec_id: recId, sku: product.sku, ...result };
   }

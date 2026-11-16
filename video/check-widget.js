@@ -25,7 +25,7 @@ const BASE = process.argv[2] || 'http://127.0.0.1:4173';
   await W('.cards[data-name=sex] .card[data-v=female]').click();
   await W('.foot .btn').click(); await sleep(500);
   out.step2 = (await text()).includes('How do you like your clothes?');
-  await W('.foot .btn:not(.ghost)').click(); await sleep(1800);
+  await W('.foot .btn:not(.ghost)').click(); await page.waitForFunction(() => !/Matching you/.test(document.querySelector('[data-forme-panel]').shadowRoot.textContent), null, { timeout: 15000 }).catch(() => {}); await sleep(500);
   await shot('w2-result');
   const t1 = await text();
   out.resultWords = /Very likely to fit|Likely to fit|Might fit|Not sure/.test(t1);

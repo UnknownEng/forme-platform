@@ -61,23 +61,26 @@ function register(router, { db, services, config, limits, selfOrigin }) {
   router.post('/v1/recommend', any, async ctx => {
     const b = await readJson(ctx.req);
     if (typeof b.sku !== 'string') fail(400, 'sku_required', 'sku is required.');
-    const product = await services.products.get(ctx.merchant.id, b.sku);
+    // Independent lookups run together (one database round trip instead of three).
+    const profileP = resolveProfile(ctx, b);
+    profileP.catch(() => {});
+    const [product, counts] = await Promise.all([services.products.get(ctx.merchant.id, b.sku), services.feedbackCounts(ctx.merchant.id, b.sku)]);
     if (!product) fail(404, 'product_not_found', `No product with SKU ${b.sku}. Sync it with PUT /v1/products/{sku}.`);
-    const profile = await resolveProfile(ctx, b);
-    return services.recommend(ctx.merchant.id, product, profile.data, profile.id);
+    const profile = await profileP;
+    return services.recommend(ctx.merchant.id, product, profile.data, profile.id, { counts });
   });
 
   router.post('/v1/recommend/batch', any, async ctx => {
     const b = await readJson(ctx.req);
     if (!Array.isArray(b.skus) || !b.skus.length || b.skus.length > 60) fail(400, 'invalid_skus', 'skus must list 1–60 SKUs.');
     const profile = await resolveProfile(ctx, b);
-    const results = [];
-    for (const sku of b.skus) results.push(await (async () => {
-      const p = typeof sku === 'string' && await services.products.get(ctx.merchant.id, sku);
+    const results = await Promise.all(b.skus.map(async sku => {
+      if (typeof sku !== 'string') return { sku, error: 'product_not_found' };
+      const [p, counts] = await Promise.all([services.products.get(ctx.merchant.id, sku), services.feedbackCounts(ctx.merchant.id, sku)]);
       if (!p) return { sku, error: 'product_not_found' };
-      const r = await services.recommend(ctx.merchant.id, p, profile.data, profile.id, { log: false });
+      const r = await services.recommend(ctx.merchant.id, p, profile.data, profile.id, { log: false, counts });
       return { sku, size: r.size, confidence: r.confidence, label: r.label };
-    })());
+    }));
     return { results };
   });
 
