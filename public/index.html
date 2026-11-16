@@ -24,7 +24,6 @@
     <nav class="nav-links" aria-label="Main">
       <a href="#how">How it works</a>
       <a href="#demo">Try it</a>
-      <a href="#roi">Savings</a>
       <a href="#developers">Developers</a>
       <a href="#pricing">Pricing</a>
     </nav>
@@ -46,7 +45,7 @@
           <a class="btn magnet" href="/console#signup">Add Forme to my store, free <span class="arrow">→</span></a>
           <a class="btn ghost magnet" href="/demo">Try the live store</a>
         </div>
-        <p class="free-line" data-reveal style="--d:.28s">Free up to 5,000 size checks a month · No card needed · <a href="#roi">See what you'd save</a></p>
+        <p class="free-line" data-reveal style="--d:.28s">Free up to 5,000 size checks a month · No card needed</p>
         <div class="hero-proof" data-reveal style="--d:.32s">
           <div class="proof p1"><b>3</b><span>questions to a size</span></div>
           <div class="proof p2"><b>&lt;50<small>ms</small></b><span>engine response</span></div>
@@ -106,7 +105,7 @@
           <p>Most Pakistani online orders are cash on delivery. A size doubt at the door becomes a refused parcel and a wasted two-way courier trip.</p>
         </article>
       </div>
-      <p class="fine" data-reveal>Return figures are widely cited global industry estimates; Pakistani figures vary by brand and courier and are rarely published. Plug in your own numbers below.</p>
+      <p class="fine" data-reveal>Return figures are widely cited global industry estimates; Pakistani figures vary by brand and courier and are rarely published.</p>
     </section>
 
     <!-- HOW -->
@@ -166,37 +165,6 @@
             </div>
           </div>
           <details class="json"><summary class="mono">View API response</summary><pre id="demo-json" class="mono"></pre></details>
-        </div>
-      </div>
-    </section>
-
-    <!-- ROI -->
-    <section class="section roi" id="roi">
-      <div class="section-head" data-reveal>
-        <div class="eyebrow"><span class="dot"></span>Savings calculator</div>
-        <h2>What fewer size returns <span class="serif grad">are worth to you.</span></h2>
-      </div>
-      <div class="roi-grid">
-        <form class="roi-form glass" data-reveal id="roi-form">
-          <label class="slider"><div class="slider-top"><span class="label">Monthly apparel orders</span><b id="r-orders-v"></b></div><input type="range" name="orders" min="100" max="500000" step="100" value="15000" /></label>
-          <label class="slider"><div class="slider-top"><span class="label">Average order value</span><b id="r-aov-v"></b></div><input type="range" name="aov" min="1000" max="20000" step="100" value="5500" /></label>
-          <label class="slider"><div class="slider-top"><span class="label">Return + refused-parcel rate</span><b id="r-rate-v"></b></div><input type="range" name="rate" min="5" max="50" step="1" value="25" /></label>
-          <label class="slider"><div class="slider-top"><span class="label">Share caused by size doubts</span><b id="r-size-v"></b></div><input type="range" name="size" min="10" max="80" step="1" value="45" /></label>
-          <label class="slider"><div class="slider-top"><span class="label">Cost per return (courier both ways + handling)</span><b id="r-cost-v"></b></div><input type="range" name="cost" min="100" max="2000" step="10" value="450" /></label>
-          <div class="field"><span class="label">Size returns Forme prevents</span><div class="seg" id="r-scenario"><button type="button" data-v="0.05">Cautious 5%</button><button type="button" data-v="0.10" class="on">Expected 10%</button><button type="button" data-v="0.15">Strong 15%</button></div><span class="fine" style="margin:6px 0 0">Published results from large European retailers using size advice sit around 4–10% fewer size returns. We would rather under-promise.</span></div>
-        </form>
-        <div class="roi-out" data-reveal style="--d:.1s">
-          <div class="roi-big glass">
-            <span class="eyebrow">Estimated yearly savings</span>
-            <div class="roi-num" id="roi-year">Rs 0</div>
-            <div class="roi-bars" id="roi-bars"></div>
-          </div>
-          <div class="roi-mini">
-            <div class="glass"><span>Returns avoided / month</span><b id="roi-returns">0</b></div>
-            <div class="glass"><span>Monthly savings</span><b id="roi-month">Rs 0</b></div>
-            <div class="glass"><span>Revenue kept / month</span><b id="roi-kept">Rs 0</b></div>
-          </div>
-          <p class="fine">An estimate from your inputs. "Revenue kept" assumes half of avoided returns would otherwise have been refunded or refused rather than exchanged.</p>
         </div>
       </div>
     </section>

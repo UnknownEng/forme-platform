@@ -155,42 +155,6 @@ async function liveDemo() {
   run();
 }
 
-/* ---------- ROI calculator ---------- */
-function roi() {
-  const f = $('#roi-form');
-  let scenario = 0.10, last = 0;
-  const bars = $('#roi-bars');
-  bars.innerHTML = Array.from({ length: 12 }, (_, i) => `<i style="--dl:${i * 40}ms"></i>`).join('');
-  const calc = () => {
-    const v = Object.fromEntries([...new FormData(f)].map(([k, x]) => [k, Number(x)]));
-    $$('input[type=range]', f).forEach(el => el.style.setProperty('--fill', `${((el.value - el.min) / (el.max - el.min)) * 100}%`));
-    $('#r-orders-v').textContent = compact(v.orders);
-    $('#r-aov-v').textContent = money(v.aov);
-    $('#r-rate-v').textContent = `${v.rate}%`;
-    $('#r-size-v').textContent = `${v.size}%`;
-    $('#r-cost-v').textContent = money(v.cost);
-    const sizeReturns = v.orders * (v.rate / 100) * (v.size / 100);
-    const avoided = sizeReturns * scenario;
-    const monthly = avoided * v.cost;
-    const kept = avoided * 0.5 * v.aov;
-    const yearly = monthly * 12;
-    countUp($('#roi-year'), yearly, { from: last, duration: 900, format: x => money(x) });
-    last = yearly;
-    $('#roi-returns').textContent = compact(Math.round(avoided));
-    $('#roi-month').textContent = money(monthly);
-    $('#roi-kept').textContent = money(kept);
-    // Ramp-up curve over the first year of rollout.
-    $$('i', bars).forEach((b, i) => { b.style.setProperty('--h', `${Math.min(100, 18 + (1 - Math.exp(-(i + 1) / 3.2)) * 82)}%`); });
-  };
-  f.addEventListener('input', calc);
-  $('#r-scenario').addEventListener('click', e => {
-    const b = e.target.closest('button'); if (!b) return;
-    $$('#r-scenario button').forEach(x => x.classList.toggle('on', x === b));
-    scenario = Number(b.dataset.v); calc();
-  });
-  calc();
-}
-
 /* ---------- Code samples with typing effect ---------- */
 const CODE = {
   widget: `<span class="c">&lt;!-- 1. Load the widget once, anywhere on the page --&gt;</span>
@@ -269,7 +233,6 @@ stage();
 reveal();
 countOnView();
 liveDemo();
-roi();
 code();
 $$('.tiltable').forEach(t => tilt(t, 5));
 $$('.magnet').forEach(b => magnetic(b, 0.18));
