@@ -25,7 +25,10 @@ const BASE = process.argv[2] || 'http://127.0.0.1:4173';
   await W('.cards[data-name=sex] .card[data-v=female]').click();
   await W('.foot .btn').click(); await sleep(500);
   out.step2 = (await text()).includes('How do you like your clothes?');
-  await W('.foot .btn:not(.ghost)').click(); await page.waitForFunction(() => !/Matching you/.test(document.querySelector('[data-forme-panel]').shadowRoot.textContent), null, { timeout: 15000 }).catch(() => {}); await sleep(500);
+  await W('.foot .btn:not(.ghost)').click();
+  // Poll (the site's CSP blocks waitForFunction's eval); a live server can take a moment.
+  for (let i = 0; i < 40 && !/Select size/.test(await text()); i++) await sleep(250);
+  await sleep(400);
   await shot('w2-result');
   const t1 = await text();
   out.resultWords = /Very likely to fit|Likely to fit|Might fit|Not sure/.test(t1);
@@ -33,7 +36,8 @@ const BASE = process.argv[2] || 'http://127.0.0.1:4173';
   out.fitWords = /Fits well|Loose|Tight|Longer|Shorter/.test(t1);
   out.savedToken = !!(await page.evaluate(() => localStorage.getItem('forme_profile_token')));
   await W('.foot .btn').click(); await sleep(500);
-  out.triggerNoPercent = !(await page.locator('[data-forme-sku]').evaluate(h => h.shadowRoot.textContent)).includes('%');
+  // Visible text only — the shadow root's <style> legitimately contains "%".
+  out.triggerNoPercent = !(await page.locator('[data-forme-sku]').evaluate(h => [...h.shadowRoot.children].filter(e => e.tagName !== 'STYLE').map(e => e.textContent).join(' '))).includes('%');
 
   // 2. Someone else: inches typed as cm get corrected, nothing is saved
   const tokenBefore = await page.evaluate(() => localStorage.getItem('forme_profile_token'));
