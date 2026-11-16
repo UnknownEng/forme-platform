@@ -88,7 +88,7 @@ async function overview() {
     <section class="card glass" style="margin-top:16px;--d:.15s"><div class="card-head"><div><h2>This server instance</h2><p>Each Vercel function instance reports its own numbers.</p></div><a class="btn ghost small" href="#system">Health checks</a></div>
       <div class="sys-grid">${[['Engine', s.engine_version], ['Node', s.node], ['Instance', s.instance], ['Uptime', `${Math.round(s.uptime_s / 60)} min`], ['Memory', `${s.memory_mb} MB`], ['Database', `${s.db_mb} MB`], ['Hosting', s.on_vercel ? 'Vercel' : 'Server'], ['Storage', s.persistent_storage ? 'Persistent' : 'Temporary']].map(([a, b]) => `<div><span>${a}</span><b>${esc(b)}</b></div>`).join('')}</div></section>`;
   $$('.kpi b').forEach(b => countUp(b, Number(b.dataset.v), { format: v => compact(v) }));
-  areaChart($('#ch'), d.series, [{ key: 'recs', color: '#ff5ca8', label: 'Recommendations' }]);
+  areaChart($('#ch'), d.series, [{ key: 'recs', color: '#2f43ff', label: 'Recommendations' }]);
   $('#view').onclick = e => { const b = e.target.closest('[data-open]'); if (b) merchantDrawer(b.dataset.open); };
 }
 

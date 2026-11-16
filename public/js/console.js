@@ -1,4 +1,4 @@
-import { $, $$, esc, money, compact, pct, api, toast, countUp, copyText, ring, animateRings, reduceMotion } from './ui.js';
+import { $, $$, esc, money, moneyShort, compact, pct, api, toast, countUp, copyText, ring, animateRings, reduceMotion } from './ui.js';
 import { artBox, SWATCHES } from './art.js';
 import { areaChart, spark } from './charts.js';
 
@@ -137,11 +137,11 @@ async function overview(my) {
   const seriesOf = key => a.series.map(d => d[key]);
   const isDemo = S.merchant.email === 'demo@forme.dev';
   const kpis = [
-    ['Widget opens', k.widget_opens.value, chg(k.widget_opens.change), 'compact', seriesOf('opens'), '#3d5afe'],
-    ['Recommendations', k.recommendations.value, chg(k.recommendations.change), 'compact', seriesOf('recs'), '#ff5ca8'],
+    ['Widget opens', k.widget_opens.value, chg(k.widget_opens.change), 'compact', seriesOf('opens'), '#9aa3ff'],
+    ['Recommendations', k.recommendations.value, chg(k.recommendations.change), 'compact', seriesOf('recs'), '#2f43ff'],
     ['Add-to-cart rate', k.add_to_cart_rate.value * 100, chg(k.add_to_cart_rate.change), 'pct', seriesOf('carts'), '#12b76a'],
     ['Influenced revenue', k.influenced_revenue.value, chg(k.influenced_revenue.change), 'money', [], '#12b76a'],
-    ['Avg. confidence', k.avg_confidence.value, '<span class="chg flat">engine score</span>', 'pct', [], '#ff5ca8'],
+    ['Avg. confidence', k.avg_confidence.value, '<span class="chg flat">engine score</span>', 'pct', [], '#2f43ff'],
     ['Unique shoppers', k.shoppers.value, '<span class="chg flat">with a profile</span>', 'compact', [], '#ff7a2f'],
   ];
   const maxRate = Math.max(r.followed_rate || 0, r.ignored_rate || 0, 0.01);
@@ -150,7 +150,7 @@ async function overview(my) {
     <div class="grid kpis">${kpis.map(([l, v, c, f, sp, col], i) => `<div class="kpi glass" style="--i:${i}"><span>${l}</span><b data-v="${v}" data-f="${f}">0</b>${c}${spark(sp, col)}</div>`).join('')}</div>
     <div class="grid row-2" style="margin-top:16px">
       <section class="card glass"><div class="card-head"><div><h2>Shopper funnel</h2><p>Daily widget opens, size recommendations and add-to-carts after a recommendation</p></div>
-        <div class="legend"><span><i style="background:#3d5afe"></i>Opens</span><span><i style="background:#ff5ca8"></i>Recommendations</span><span><i style="background:#12b76a"></i>Add to cart</span></div></div>
+        <div class="legend"><span><i style="background:#9aa3ff"></i>Opens</span><span><i style="background:#2f43ff"></i>Recommendations</span><span><i style="background:#12b76a"></i>Add to cart</span></div></div>
         <div class="chart" id="funnel"></div></section>
       <section class="card glass impact" style="--d:.1s"><div class="card-head"><div><h2>Return impact</h2><p>Size returns when shoppers followed Forme vs. picked another size</p></div></div>
         <div><div class="impact-big" id="savings">0</div><div class="helper">Estimated saved in ${S.days} days · ${r.returns_avoided} size returns avoided × ${money(r.return_cost, cur)} per return</div></div>
@@ -167,9 +167,9 @@ async function overview(my) {
         <div class="table-wrap"><table><tbody>${a.top_products.map((p, i) => `<tr style="--i:${i}"><td><b>${esc(p.name || p.sku)}</b><br/><small class="muted mono">${esc(p.sku)}</small></td><td style="text-align:right;font-family:var(--mono)">${compact(p.recs)}</td><td><span class="conf" style="--w:${p.confidence}%"><i></i>${p.confidence}%</span></td></tr>`).join('') || '<tr><td class="empty">No recommendations yet</td></tr>'}</tbody></table></div></section>
       <section class="card glass" style="--d:.25s"><div class="card-head"><div><h2>Live activity</h2><p>Updates every few seconds</p></div><span class="live"><i></i></span></div><div class="feed" id="feed"></div></section>
     </div>`;
-  $$('.kpi b').forEach(b => { const f = b.dataset.f; countUp(b, Number(b.dataset.v), { format: f === 'money' ? v => money(v, cur) : f === 'pct' ? v => `${v.toFixed(1)}%` : v => compact(v) }); });
+  $$('.kpi b').forEach(b => { const f = b.dataset.f; countUp(b, Number(b.dataset.v), { format: f === 'money' ? v => moneyShort(v, cur) : f === 'pct' ? v => `${v.toFixed(1)}%` : v => compact(v) }); });
   countUp($('#savings'), r.estimated_savings, { format: v => money(v, cur), duration: 1800 });
-  areaChart($('#funnel'), a.series, [{ key: 'opens', color: '#3d5afe', label: 'Opens' }, { key: 'recs', color: '#ff5ca8', label: 'Recommendations' }, { key: 'carts', color: '#12b76a', label: 'Add to cart' }]);
+  areaChart($('#funnel'), a.series, [{ key: 'opens', color: '#9aa3ff', label: 'Opens' }, { key: 'recs', color: '#2f43ff', label: 'Recommendations' }, { key: 'carts', color: '#12b76a', label: 'Add to cart' }]);
   const mixMax = Math.max(1, ...a.size_mix.map(s => s.n));
   $('#mix').innerHTML = a.size_mix.length ? [...a.size_mix].sort((x, y) => sizeOrder(x.size) - sizeOrder(y.size)).map((s, i) => `<div style="--i:${i}"><i data-h="${(s.n / mixMax) * 100}" title="${s.n}"></i><span>${esc(s.size)}</span></div>`).join('') : '<p class="empty">No data yet</p>';
   requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -442,7 +442,7 @@ async function integration(my) {
   window.Forme &amp;&amp; Forme.track(<span class="s">'add_to_cart'</span>, { sku, size });
 <span class="k">&lt;/script&gt;</span>`;
   const accent = m.widget.accent;
-  const ACCENTS = ['#c6ff3d', '#ff5ca8', '#12b76a', '#3d5afe', '#ff7a2f', '#ffd43b', '#ffffff'];
+  const ACCENTS = ['#c6ff3d', '#2f43ff', '#12b76a', '#9aa3ff', '#ff7a2f', '#ffd43b', '#ffffff'];
   view.innerHTML = `<div class="grid row-2">
     <section class="card glass"><div class="card-head"><div><h2>Install the widget</h2><p>Copy the code, then follow the steps for your store. Replace <b>${esc(firstSku)}</b> with each product's code.</p></div><button class="btn ghost small" id="copy-snippet">Copy code</button></div>
       <div class="seg" id="plat" style="margin-bottom:12px"><button type="button" class="on" data-p="shopify">Shopify</button><button type="button" data-p="woo">WooCommerce</button><button type="button" data-p="custom">Custom site</button></div>

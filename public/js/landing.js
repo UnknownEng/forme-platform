@@ -1,55 +1,53 @@
 import { $, $$, esc, money, compact, reveal, countOnView, countUp, tilt, magnetic, copyText, ring, animateRings, reduceMotion } from './ui.js';
 import { artBox } from './art.js';
 
-/* ---------- Floating confetti: shapes drift and dodge the cursor ---------- */
-function threads() {
-  const c = $('#threads');
-  const ctx = c.getContext('2d');
-  const COLORS = ['#c6ff3d', '#ff5ca8', '#3d5afe', '#ffd43b', '#ff7a2f', '#12b76a'];
-  let w, h, dpr, bits = [];
-  const mouse = { x: -9999, y: -9999 };
-  const resize = () => {
-    dpr = Math.min(2, devicePixelRatio || 1);
-    w = c.width = innerWidth * dpr; h = c.height = innerHeight * dpr;
-    const n = Math.round(Math.min(34, (innerWidth * innerHeight) / 40000));
-    bits = Array.from({ length: n }, (_, i) => ({ x: Math.random() * w, y: Math.random() * h, vx: (Math.random() - .5) * .3 * dpr, vy: (-.15 - Math.random() * .35) * dpr,
-      r: (6 + Math.random() * 9) * dpr, rot: Math.random() * 6.28, vr: (Math.random() - .5) * .02, color: COLORS[i % COLORS.length], kind: i % 4 }));
-  };
-  resize();
-  addEventListener('resize', resize);
-  addEventListener('pointermove', e => { mouse.x = e.clientX * dpr; mouse.y = e.clientY * dpr; });
-  const draw = b => {
-    ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.rot);
-    ctx.fillStyle = b.color; ctx.strokeStyle = '#121212'; ctx.lineWidth = 2 * dpr; ctx.beginPath();
-    if (b.kind === 0) ctx.arc(0, 0, b.r * .7, 0, Math.PI * 2);
-    else if (b.kind === 1) ctx.rect(-b.r * .7, -b.r * .7, b.r * 1.4, b.r * 1.4);
-    else if (b.kind === 2) { ctx.moveTo(0, -b.r); ctx.lineTo(b.r * .9, b.r * .7); ctx.lineTo(-b.r * .9, b.r * .7); ctx.closePath(); }
-    else { for (let k = 0; k < 10; k++) { const rr = k % 2 ? b.r * .45 : b.r; const a = (k / 10) * Math.PI * 2; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } ctx.closePath(); }
-    ctx.fill(); ctx.stroke(); ctx.restore();
-  };
-  const frame = () => {
-    ctx.clearRect(0, 0, w, h);
-    for (const b of bits) {
-      const dx = b.x - mouse.x, dy = b.y - mouse.y, d = Math.hypot(dx, dy);
-      if (d < 140 * dpr) { b.x += (dx / d) * 4 * dpr; b.y += (dy / d) * 4 * dpr; b.vr += .004; }
-      b.x += b.vx; b.y += b.vy; b.rot += b.vr; b.vr *= .995;
-      if (b.y < -40 * dpr) { b.y = h + 40 * dpr; b.x = Math.random() * w; }
-      if (b.x < -40 * dpr) b.x = w + 30 * dpr; else if (b.x > w + 40 * dpr) b.x = -30 * dpr;
-      ctx.globalAlpha = .55; draw(b);
-    }
-    requestAnimationFrame(frame);
-  };
-  if (!reduceMotion()) frame();
-}
-
-/* ---------- Nav ---------- */
+/* ---------- Dynamic nav ---------- */
+// Shrinks once you scroll, hides while scrolling down and returns on the way up,
+// shows reading progress, and slides a highlight to the section you're on.
 function nav() {
   const n = $('#nav');
-  const onScroll = () => n.classList.toggle('scrolled', scrollY > 30);
-  addEventListener('scroll', onScroll, { passive: true }); onScroll();
+  const bar = $('#progress');
+  const links = $$('.nav-links a[href^="#"]');
+  const ind = $('.nav-ind');
+  let lastY = scrollY, ticking = false;
+  const onScroll = () => {
+    const y = scrollY;
+    n.classList.toggle('scrolled', y > 40);
+    if (!n.classList.contains('open')) n.classList.toggle('hidden', y > 300 && y > lastY + 4);
+    if (y < lastY - 4) n.classList.remove('hidden');
+    lastY = y;
+    const max = document.documentElement.scrollHeight - innerHeight;
+    bar.style.setProperty('--p', max > 0 ? (y / max).toFixed(4) : 0);
+    ticking = false;
+  };
+  addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
+  onScroll();
+
+  const moveTo = a => {
+    links.forEach(x => x.classList.toggle('on', x === a));
+    if (!a) { ind.style.opacity = 0; return; }
+    ind.style.opacity = 1;
+    ind.style.width = `${a.offsetWidth}px`;
+    ind.style.transform = `translateX(${a.offsetLeft}px)`;
+  };
+  const sections = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if ('IntersectionObserver' in window) {
+    const visible = new Map();
+    const io = new IntersectionObserver(entries => {
+      for (const e of entries) visible.set(e.target, e.isIntersecting ? e.intersectionRatio : 0);
+      let best = null, ratio = 0;
+      for (const [el, r] of visible) if (r > ratio) { ratio = r; best = el; }
+      moveTo(best ? links.find(a => a.getAttribute('href') === '#' + best.id) : null);
+    }, { threshold: [0.15, 0.35, 0.6], rootMargin: '-20% 0px -40% 0px' });
+    sections.forEach(s => io.observe(s));
+  }
+  // Hovering previews the highlight; leaving returns it to the active section.
+  links.forEach(a => a.addEventListener('pointerenter', () => { ind.style.opacity = 1; ind.style.width = `${a.offsetWidth}px`; ind.style.transform = `translateX(${a.offsetLeft}px)`; }));
+  $('.nav-links').addEventListener('pointerleave', () => moveTo(links.find(a => a.classList.contains('on')) || null));
+
   const b = $('.burger');
-  b.addEventListener('click', () => { const open = n.classList.toggle('open'); b.setAttribute('aria-expanded', String(open)); });
-  $$('.nav-links a').forEach(a => a.addEventListener('click', () => n.classList.remove('open')));
+  b.addEventListener('click', () => { const open = n.classList.toggle('open'); n.classList.remove('hidden'); b.setAttribute('aria-expanded', String(open)); });
+  $$('.nav-links a').forEach(a => a.addEventListener('click', () => { n.classList.remove('open'); b.setAttribute('aria-expanded', 'false'); }));
 }
 
 /* ---------- Hero stage: flying garments + cycling widget ---------- */
@@ -73,8 +71,8 @@ function stage() {
     const x = HERO_SAMPLES[i % HERO_SAMPLES.length];
     $('#phone-art').innerHTML = artBox(x.cat, x.color);
     $('#phone-name').textContent = x.name;
-    $('#phone-ring').innerHTML = ring(x.conf, 96, 10);
-    countUp($('#phone-conf'), x.conf, { duration: 1100, format: v => `${Math.round(v)}%` });
+    $('#phone-ring').innerHTML = ring(x.conf, 96, 8, 'var(--blue)');
+    $('#phone-conf').textContent = x.conf >= 88 ? 'very likely' : x.conf >= 74 ? 'likely' : 'check chart';
     $('#phone-size').textContent = x.size; $('#phone-size-2').textContent = x.size;
     $('#phone-notes').innerHTML = x.notes.map(([a, f]) => `<div><span>${a}</span><em class="${f}">${f}</em></div>`).join('');
     animateRings($('#stage'));
@@ -120,10 +118,10 @@ async function liveDemo() {
         const r = await res.json();
         if (my !== seq) return;
         if (!res.ok) throw new Error(r.error?.message);
-        $('#demo-ring').innerHTML = ring(r.confidence, 140, 14);
+        $('#demo-ring').innerHTML = ring(r.confidence, 140, 10, 'var(--blue)');
         animateRings($('#demo'));
         $('#demo-size').textContent = r.size;
-        $('#demo-conf').textContent = `${r.confidence}%`;
+        $('#demo-conf').textContent = r.confidence >= 88 ? 'very likely' : r.confidence >= 74 ? 'likely' : r.confidence >= 58 ? 'check chart' : 'not sure';
         $('#demo-label').textContent = r.label;
         $('#demo-alt').textContent = r.alternative ? `Alternative: ${r.alternative.size}. ${r.alternative.reason}` : r.estimated.length ? 'Estimated from height and weight. Add measurements for more precision.' : '';
         $('#demo-notes').innerHTML = r.fit_notes.map(n => `<span class="note ${n.fit}"><b>${n.area}</b><em>${n.fit}</em><span class="muted mono">${n.delta_cm > 0 ? '+' : ''}${n.delta_cm}cm</span></span>`).join('');
@@ -155,85 +153,11 @@ async function liveDemo() {
   run();
 }
 
-/* ---------- Code samples with typing effect ---------- */
-const CODE = {
-  widget: `<span class="c">&lt;!-- 1. Load the widget once, anywhere on the page --&gt;</span>
-<span class="k">&lt;script</span> <span class="n">src</span>=<span class="s">"https://cdn.forme.fit/widget.js"</span>
-        <span class="n">data-key</span>=<span class="s">"pk_live_…"</span> <span class="n">async</span><span class="k">&gt;&lt;/script&gt;</span>
-
-<span class="c">&lt;!-- 2. Put a placeholder next to your size picker --&gt;</span>
-<span class="k">&lt;div</span> <span class="n">data-forme-sku</span>=<span class="s">"NL-TEE-01"</span><span class="k">&gt;&lt;/div&gt;</span>
-
-<span class="c">&lt;!-- 3. Hook the chosen size into your cart --&gt;</span>
-<span class="k">&lt;script&gt;</span>
-  document.addEventListener(<span class="s">'forme:size-selected'</span>, e =&gt; {
-    selectSize(e.detail.size);   <span class="c">// your existing function</span>
-  });
-<span class="k">&lt;/script&gt;</span>`,
-  rest: `<span class="c"># Server-side or app call</span>
-curl -X POST https://api.forme.fit/v1/recommend \\
-  -H <span class="s">"Authorization: Bearer sk_live_…"</span> \\
-  -H <span class="s">"Content-Type: application/json"</span> \\
-  -d <span class="s">'{
-    "sku": "NL-TEE-01",
-    "profile": { "height": 178, "weight": 76, "fit": "Regular" }
-  }'</span>
-
-<span class="c"># → 200 OK</span>
-{ <span class="n">"size"</span>: <span class="s">"L"</span>, <span class="n">"confidence"</span>: <span class="s">82</span>, <span class="n">"label"</span>: <span class="s">"Good match"</span>,
-  <span class="n">"alternative"</span>: { <span class="n">"size"</span>: <span class="s">"XL"</span>, … },
-  <span class="n">"fit_notes"</span>: [ { <span class="n">"area"</span>: <span class="s">"chest"</span>, <span class="n">"fit"</span>: <span class="s">"ideal"</span> }, … ] }`,
-  feedback: `<span class="c">// Send outcomes from your returns system.</span>
-<span class="c">// Forme recalibrates products that run small or large.</span>
-<span class="k">await</span> fetch(<span class="s">'https://api.forme.fit/v1/feedback'</span>, {
-  method: <span class="s">'POST'</span>,
-  headers: {
-    Authorization: <span class="s">\`Bearer \${process.env.FORME_SECRET}\`</span>,
-    <span class="s">'Content-Type'</span>: <span class="s">'application/json'</span>,
-  },
-  body: JSON.stringify({
-    sku: <span class="s">'NL-OXF-03'</span>,
-    size: <span class="s">'M'</span>,
-    outcome: <span class="s">'too_small'</span>,   <span class="c">// kept | too_small | too_large | returned_other</span>
-    rec_id: order.formeRecId,
-  }),
-});`,
-};
-function code() {
-  const pre = $('#code-body');
-  let tab = 'widget', typing;
-  const plain = html => { const d = document.createElement('div'); d.innerHTML = html; return d.textContent; };
-  const type = () => {
-    clearInterval(typing);
-    const html = CODE[tab];
-    if (reduceMotion()) { pre.innerHTML = html; return; }
-    // Reveal the highlighted HTML progressively, never splitting a tag or entity.
-    let i = 0;
-    typing = setInterval(() => {
-      i += 6;
-      while (i < html.length && (html.lastIndexOf('<', i) > html.lastIndexOf('>', i) || html.lastIndexOf('&', i) > html.lastIndexOf(';', i))) i++;
-      pre.innerHTML = html.slice(0, i) + (i < html.length ? '<span class="caret"></span>' : '');
-      if (i >= html.length) clearInterval(typing);
-    }, 16);
-  };
-  const io = new IntersectionObserver(es => { if (es[0].isIntersecting) { type(); io.disconnect(); } }, { threshold: 0.3 });
-  io.observe(pre);
-  $('.code-tabs').addEventListener('click', e => {
-    const b = e.target.closest('button[data-tab]');
-    if (!b) return;
-    $$('.code-tabs [data-tab]').forEach(x => x.classList.toggle('on', x === b));
-    tab = b.dataset.tab; type();
-  });
-  $('#copy-code').addEventListener('click', () => copyText(plain(CODE[tab])));
-}
-
-threads();
 nav();
 stage();
 reveal();
 countOnView();
 liveDemo();
-code();
-$$('.tiltable').forEach(t => tilt(t, 5));
-$$('.magnet').forEach(b => magnetic(b, 0.18));
+$$('.tiltable').forEach(t => tilt(t, 2));
+$$('.magnet').forEach(b => magnetic(b, 0.12));
 if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(() => {});

@@ -10,6 +10,14 @@ export function money(v, currency = 'PKR') {
   try { return new Intl.NumberFormat('en-PK', { style: 'currency', currency, maximumFractionDigits: 0 }).format(n); }
   catch { return `${currency} ${n.toLocaleString('en-PK')}`; }
 }
+// Short rupee amounts the way Pakistan reads them: 3.6 lakh, 1.2 crore.
+export function moneyShort(v, currency = 'PKR') {
+  const n = Number(v) || 0;
+  if (currency !== 'PKR') return compact(n);
+  if (n >= 1e7) return `Rs ${(n / 1e7).toFixed(n >= 1e8 ? 0 : 1)} crore`;
+  if (n >= 1e5) return `Rs ${(n / 1e5).toFixed(n >= 1e6 ? 0 : 1)} lakh`;
+  return money(n, currency);
+}
 export const compact = v => new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(Number(v) || 0);
 export const pct = (v, d = 1) => `${(Number(v) * 100).toFixed(d)}%`;
 
@@ -99,9 +107,9 @@ export async function copyText(text) {
 }
 
 // Confidence ring as SVG; animate by toggling the --p variable.
-export function ring(value, size = 120, stroke = 10, color = 'var(--pink)') {
+export function ring(value, size = 120, stroke = 10, color = 'var(--blue)') {
   const r = (size - stroke) / 2, c = 2 * Math.PI * r;
-  return `<svg class="ring" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" aria-hidden="true"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="rgba(18,18,18,.1)" stroke-width="${stroke}"/>
+  return `<svg class="ring" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" aria-hidden="true"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="rgba(15,15,18,.08)" stroke-width="${stroke}"/>
   <circle class="ring-fg" cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c}" data-target="${c * (1 - value / 100)}" transform="rotate(-90 ${size / 2} ${size / 2})" style="transition:stroke-dashoffset 1.3s cubic-bezier(.22,1,.36,1)"/></svg>`;
 }
 export function animateRings(root = document) {

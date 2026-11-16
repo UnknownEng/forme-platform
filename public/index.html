@@ -16,15 +16,18 @@
   <script type="module" src="/js/landing.js"></script>
 </head>
 <body>
-  <canvas id="threads" aria-hidden="true"></canvas>
-  <div class="blobs" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="aura" aria-hidden="true"><i></i><i></i></div>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="scroll-progress" aria-hidden="true"><i id="progress"></i></div>
 
   <header class="nav" id="nav">
     <a href="/" class="logo"><span class="logo-mark"><span>f</span></span>forme</a>
     <nav class="nav-links" aria-label="Main">
+      <span class="nav-ind" aria-hidden="true"></span>
+      <a href="#problem">Why</a>
       <a href="#how">How it works</a>
       <a href="#demo">Try it</a>
-      <a href="#developers">Developers</a>
+      <a href="#features">Platform</a>
       <a href="#pricing">Pricing</a>
     </nav>
     <div class="nav-cta">
@@ -54,22 +57,19 @@
       </div>
 
       <div class="stage" id="stage" aria-hidden="true">
-        <span class="sticker s-a">fewer returns ↓</span>
-        <span class="sticker s-b">🇵🇰 made in Pakistan</span>
-        <span class="sticker s-c">free pilot for 10 brands</span>
-        <div class="orbit o1"><span class="chip">M · 86%</span></div>
-        <div class="orbit o2"><span class="chip violet">32 · Strong</span></div>
-        <div class="orbit o3"><span class="chip mint">Chest ✓ ideal</span></div>
+        <div class="orbit o1"><span class="chip"><i></i>M · Likely to fit</span></div>
+        <div class="orbit o2"><span class="chip violet"><i></i>Waist 32 · fits well</span></div>
+        <div class="orbit o3"><span class="chip mint"><i></i>Kurta · S</span></div>
         <div class="fly f1" data-depth="40"></div>
         <div class="fly f2" data-depth="70"></div>
         <div class="fly f3" data-depth="25"></div>
         <div class="fly f4" data-depth="55"></div>
         <div class="phone" data-depth="12">
-          <div class="phone-top"><span class="logo-mark sm"><span>f</span></span><b>Find my size</b><span class="pill lime">LIVE</span></div>
+          <div class="phone-top"><span class="logo-mark sm"><span>f</span></span><b>Find my size</b><span class="pill lime"><i class="live-dot"></i>Live</span></div>
           <div class="phone-art" id="phone-art"></div>
           <div class="phone-name" id="phone-name">Everyday Cotton Tee</div>
           <div class="phone-result">
-            <div class="ring-wrap"><div id="phone-ring"></div><div class="ring-label"><b id="phone-size">M</b><small id="phone-conf">94%</small></div></div>
+            <div class="ring-wrap"><div id="phone-ring"></div><div class="ring-label"><b id="phone-size">M</b><small id="phone-conf">likely</small></div></div>
             <div class="phone-notes" id="phone-notes"></div>
           </div>
           <div class="phone-btn">Add size <span id="phone-size-2">M</span> to bag</div>
@@ -80,13 +80,13 @@
     <!-- MARQUEE -->
     <section class="marquee" aria-label="Who Forme is for">
       <div class="marquee-track">
-        <span>Pret &amp; lawn</span><i>✦</i><span>Menswear</span><i>✦</i><span>Kurtas</span><i>✦</i><span>Shalwar kameez</span><i>✦</i><span>Denim</span><i>✦</i><span>Marketplaces</span><i>✦</i><span>D2C brands</span><i>✦</i><span>Kids</span><i>✦</i>
-        <span>Pret &amp; lawn</span><i>✦</i><span>Menswear</span><i>✦</i><span>Kurtas</span><i>✦</i><span>Shalwar kameez</span><i>✦</i><span>Denim</span><i>✦</i><span>Marketplaces</span><i>✦</i><span>D2C brands</span><i>✦</i><span>Kids</span><i>✦</i>
+        <span>Pret &amp; lawn</span><i>/</i><span>Menswear</span><i>/</i><span>Kurtas</span><i>/</i><span>Shalwar kameez</span><i>/</i><span>Denim</span><i>/</i><span>Marketplaces</span><i>/</i><span>D2C brands</span><i>/</i><span>Kids</span><i>/</i>
+        <span>Pret &amp; lawn</span><i>/</i><span>Menswear</span><i>/</i><span>Kurtas</span><i>/</i><span>Shalwar kameez</span><i>/</i><span>Denim</span><i>/</i><span>Marketplaces</span><i>/</i><span>D2C brands</span><i>/</i><span>Kids</span><i>/</i>
       </div>
     </section>
 
     <!-- PROBLEM -->
-    <section class="section problem">
+    <section class="section problem" id="problem">
       <div class="section-head" data-reveal>
         <div class="eyebrow"><span class="dot"></span>The problem</div>
         <h2>"Medium" means something different<br />at <span class="serif grad">every single brand.</span></h2>
@@ -119,22 +119,19 @@
           <div class="step-n">01</div>
           <div class="step-icon">⇄</div>
           <h3>Sync your size charts</h3>
-          <p>Push products through the API, bulk-import JSON, or edit charts in the console. Kurtas, pret, denim, any size labels.</p>
-          <code>PUT /v1/products/{sku}</code>
+          <p>Add products and their size charts in the console, or sync your whole catalog at once. Kurtas, pret, denim, any size labels.</p>
         </article>
         <article class="step glass" data-reveal style="--d:.15s">
           <div class="step-n">02</div>
           <div class="step-icon">◎</div>
           <h3>Shoppers answer 3 questions</h3>
           <p>Height, weight and how they like clothes to fit. Exact measurements are optional. Saved once, used on every product.</p>
-          <code>&lt;div data-forme-sku="…"&gt;</code>
         </article>
         <article class="step glass" data-reveal style="--d:.25s">
           <div class="step-n">03</div>
           <div class="step-icon">↻</div>
           <h3>Recommend, then learn</h3>
           <p>A size, a confidence score and fit notes. Keep/return feedback recalibrates every product that runs small or large.</p>
-          <code>POST /v1/feedback</code>
         </article>
       </div>
     </section>
@@ -170,14 +167,14 @@
     </section>
 
     <!-- FEATURES -->
-    <section class="section features">
+    <section class="section features" id="features">
       <div class="section-head" data-reveal>
         <div class="eyebrow"><span class="dot"></span>Platform</div>
         <h2>Everything a big catalog <span class="serif grad">actually needs.</span></h2>
       </div>
       <div class="bento">
         <article class="tile glass t-wide tiltable c-sun" data-reveal>
-          <span class="pill">Coming soon: network</span>
+          <span class="pill lime">Coming soon</span>
           <h3>One profile, every product</h3>
           <p>Shoppers answer once and get a size on every product in your store. Next up: a Forme profile that follows them to every brand on the network.</p>
           <div class="profile-chips"><span>178 cm</span><span>76 kg</span><span>Regular fit</span><span class="on">fp_••••9KQ</span></div>
@@ -189,15 +186,14 @@
           <div class="calib"><i style="--h:30%"></i><i style="--h:55%"></i><i style="--h:42%"></i><i style="--h:75%"></i><i style="--h:62%"></i><i style="--h:88%"></i></div>
         </article>
         <article class="tile glass tiltable c-pink" data-reveal style="--d:.12s">
-          <span class="pill">Desi sizing</span>
+          <span class="pill">Local</span>
           <h3>Built for Pakistani pret</h3>
           <p>Kurtas, shalwar kameez, lawn and denim, each brand with its own chart and size labels.</p>
         </article>
         <article class="tile glass tiltable c-blue" data-reveal style="--d:.06s">
-          <span class="pill">Scale</span>
-          <h3>"Your size: M" on listing pages</h3>
-          <p>Sizes for 60 products in a single call.</p>
-          <code class="mono">POST /v1/recommend/batch</code>
+          <span class="pill">Discovery</span>
+          <h3>Sizes across the catalog</h3>
+          <p>"Your size: M" right on listing pages, so shoppers browse in their size.</p>
         </article>
         <article class="tile glass tiltable c-lime" data-reveal style="--d:.12s">
           <span class="pill">Proof</span>
@@ -217,27 +213,6 @@
       </div>
     </section>
 
-    <!-- DEVELOPERS -->
-    <section class="section dev" id="developers">
-      <div class="dev-grid">
-        <div data-reveal>
-          <div class="eyebrow"><span class="dot"></span>Developers</div>
-          <h2>Live in an afternoon. <span class="serif grad">Deep when you need it.</span></h2>
-          <p class="lead">Drop in the widget for a no-code launch, or call the REST API from your own app. Works with Shopify, WooCommerce and custom stores. Full OpenAPI spec included.</p>
-          <div class="hero-cta"><a class="btn" href="/docs">Read the API docs <span class="arrow">→</span></a><a class="btn ghost" href="/openapi.json">openapi.json</a></div>
-        </div>
-        <div class="code glass" data-reveal style="--d:.1s">
-          <div class="code-tabs" role="tablist">
-            <button class="on" data-tab="widget" role="tab">Widget</button>
-            <button data-tab="rest" role="tab">REST</button>
-            <button data-tab="feedback" role="tab">Feedback</button>
-            <button class="copy" id="copy-code" aria-label="Copy code">Copy</button>
-          </div>
-          <pre class="mono" id="code-body"></pre>
-        </div>
-      </div>
-    </section>
-
     <!-- PRICING -->
     <section class="section pricing" id="pricing">
       <div class="section-head" data-reveal>
@@ -248,14 +223,14 @@
         <article class="plan glass" data-reveal>
           <h3>Starter</h3><div class="price">Rs 0<small>/month</small></div>
           <p>For pilots and small brands.</p>
-          <ul class="checks"><li>Up to 5,000 size checks a month</li><li>Widget + REST API</li><li>Core analytics</li></ul>
+          <ul class="checks"><li>Up to 5,000 size checks a month</li><li>Size finder on every product</li><li>Core analytics</li></ul>
           <a class="btn ghost" href="/console#signup">Start free</a>
         </article>
         <article class="plan glass featured" data-reveal style="--d:.08s">
           <span class="pill lime">Most popular</span>
           <h3>Growth</h3><div class="price">Rs 9,999<small>/month</small></div>
           <p>For growing pret and menswear brands. Up to 50,000 size checks a month, then Rs 0.25 each.</p>
-          <ul class="checks"><li>Unlimited products</li><li>Return-feedback calibration</li><li>Batch API for listing pages</li><li>WhatsApp + email support</li></ul>
+          <ul class="checks"><li>Unlimited products</li><li>Return-feedback calibration</li><li>"Your size" on listing pages</li><li>WhatsApp + email support</li></ul>
           <a class="btn" href="/console#signup">Start 30-day trial</a>
         </article>
         <article class="plan glass" data-reveal style="--d:.16s">
@@ -270,7 +245,7 @@
     <!-- CTA -->
     <section class="cta" data-reveal>
       <div class="cta-inner glass">
-        <span class="sticker s-cta">free pilot for 10 brands</span>
+        <span class="eyebrow light"><span class="dot"></span>Free pilot for 10 brands</span>
         <h2>Give every shopper <span class="serif grad">their size, everywhere.</span></h2>
         <p class="lead">Explore the demo workspace with 60 days of sample data, or apply for a free pilot on one category.</p>
         <div class="hero-cta center"><a class="btn magnet" href="/console">Open the console <span class="arrow">→</span></a><a class="btn ghost magnet" href="/demo">See the shopper experience</a></div>
@@ -280,8 +255,8 @@
 
   <footer class="footer">
     <a href="/" class="logo"><span class="logo-mark"><span>f</span></span>forme</a>
-    <nav><a href="/demo">Demo store</a><a href="/console">Console</a><a href="/docs">API docs</a><a href="/privacy">Privacy</a><a href="/v1/health">Status</a></nav>
-    <span class="muted">© 2026 Forme · Made in Pakistan 🇵🇰 · Sample data is illustrative · <a href="/privacy">Privacy</a></span>
+    <nav><a href="/demo">Demo store</a><a href="/console">Console</a><a href="/privacy">Privacy</a><a href="/v1/health">Status</a></nav>
+    <span class="muted">© 2026 Forme · Made in Pakistan · Sample data is illustrative · <a href="/privacy">Privacy</a></span>
   </footer>
 </body>
 </html>

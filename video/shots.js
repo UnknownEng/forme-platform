@@ -18,12 +18,12 @@ const ADMIN_PW = process.env.FORME_ADMIN_PASSWORD || (() => { try { return fs.re
   const scrollShot = async (name, sel) => { await page.locator(sel).scrollIntoViewIfNeeded(); await page.evaluate(s => document.querySelector(s).scrollIntoView({ block: 'start' }), sel); await sleep(1400); await shot(name); };
 
   await page.goto(BASE + '/', { waitUntil: 'networkidle' }); await sleep(2200); await shot('01-hero');
-  for (const [n, s] of [['02-problem', '.problem'], ['03-how', '#how'], ['04-demo', '#demo'], ['05-roi', '#roi'], ['06-features', '.features'], ['07-dev', '#developers'], ['08-pricing', '#pricing']]) await scrollShot(n, s);
+  for (const [n, s] of [['02-problem', '.problem'], ['03-how', '#how'], ['04-demo', '#demo'], ['06-features', '.features'], ['08-pricing', '#pricing']]) await scrollShot(n, s);
 
   await page.goto(BASE + '/demo#/', { waitUntil: 'networkidle' }); await sleep(1200); await shot('09-store');
   await page.goto(BASE + '/demo#/p/NL-KRT-11', { waitUntil: 'networkidle' }); await sleep(900);
   await page.locator('[data-forme-sku] >> .trigger').click(); await sleep(900); await shot('10-widget-step1');
-  await page.locator('[data-forme-panel] >> input[name=height]').fill('160');
+  await page.locator('[data-forme-panel] >> input[name=hft]').fill('5'); await page.locator('[data-forme-panel] >> input[name=hin]').fill('3');
   await page.locator('[data-forme-panel] >> input[name=weight]').fill('55');
   await page.locator('[data-forme-panel] >> .card[data-v=female]').click();
   await page.locator('[data-forme-panel] >> .foot .btn').click(); await sleep(600);
